@@ -1,0 +1,20 @@
+[
+  {
+    "symbol": "2330.TW",
+    "name": "台積電",
+    "price": 851,
+    "direction": "做多",
+    "ai_win_rate": 95,
+    "entry_price": 848,
+    "exit_price": 860
+  },
+  {
+    "symbol": "2317.TW",
+    "name": "鴻海",
+    "price": 134.5,
+    "direction": "做空",
+    "ai_win_rate": 88,
+    "entry_price": 135,
+    "exit_price": 132
+  }
+]
