@@ -1,1 +1,4 @@
-Flask
+flask
+yfinance
+pandas
+scikit-learn
