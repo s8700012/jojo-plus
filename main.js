@@ -1,1 +1,0 @@
-setInterval(() => { fetch('/api/data').then(r => r.json()).then(data => { console.log(data); }); }, 1000);
