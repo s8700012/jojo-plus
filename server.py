@@ -9,13 +9,13 @@ import os
 app = Flask(__name__)
 model = load_model()
 
-# 載入由 preopen_scraper.py 建立的 stocks.json
+# 載入由爬蟲自動產生的 stocks.json
 with open('stocks.json', 'r', encoding='utf-8') as f:
     content = f.read().strip()
     if not content:
-        raise ValueError("stocks.json 為空，請檢查檔案來源是否正確寫入")
+        raise ValueError("stocks.json 為空，請檢查檔案來源")
     stock_list = json.loads(content)
-    
+
 @app.route('/')
 def home():
     return send_file("index.html")
