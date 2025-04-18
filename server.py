@@ -24,7 +24,7 @@ def home():
 def get_stocks():
     data = []
     for stock in stock_list:
-        symbol = f"{stock['symbol']}.TW"  # Yahoo Finance 台股代碼需加 .TW
+        symbol = f"{stock['symbol']}.TW"
         try:
             ticker = yf.Ticker(symbol)
             history = ticker.history(period='1d')
