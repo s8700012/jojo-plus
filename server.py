@@ -23,22 +23,30 @@ def home():
 @app.route('/stocks')
 def get_stocks():
     data = []
-    for stock in stock_list:
-        symbol = f"{stock['symbol']}.TW"
-        try:
-            ticker = yf.Ticker(symbol)
-            history = ticker.history(period='1d')
-            if history.empty:
-                price = 0
-                print(f"[資料缺失] {symbol} 無法取得報價")
-            else:
-                price = round(history['Close'].iloc[-1], 2)
-                print(f"[成功] {symbol} 價格為 {price}")
-        except Exception as e:
-            price = 0
-            print(f"[錯誤] {symbol} 發生例外: {e}")
 
-        # 即使 price 為 0，也照常顯示，供前端顯示與 debug
+    # 轉換為 .TW 並保留對應資訊
+    symbols_map = {f"{stock['symbol']}.TW": stock for stock in stock_list}
+    symbols = list(symbols_map.keys())
+
+    try:
+        # 批次抓取所有股票的價格
+        history = yf.download(tickers=" ".join(symbols), period='1d', group_by='ticker', threads=True)
+    except Exception as e:
+        print("[Error] 批次抓取失敗:", e)
+        return jsonify([])
+
+    for sym in symbols:
+        stock = symbols_map[sym]
+        try:
+            # 判斷資料格式是多股票還是單股票
+            if sym in history and not history[sym].empty:
+                price = round(history[sym]['Close'].iloc[-1], 2)
+            else:
+                continue
+        except Exception as e:
+            print(f"[錯誤] 取得 {sym} 價格失敗:", e)
+            continue
+
         features = generate_features(price)
         prediction = predict(model, features)
         data.append({
@@ -65,5 +73,4 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
 
-# for Render
 app = app
