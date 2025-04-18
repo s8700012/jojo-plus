@@ -73,3 +73,7 @@ def time_now():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
+from stock_selector import select_top_30_stocks  # 新增
+
+# 取代原本讀 stocks.json 的方式，改由函式取得
+stock_list = select_top_30_stocks()
