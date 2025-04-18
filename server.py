@@ -24,7 +24,7 @@ def home():
 def get_stocks():
     data = []
     for stock in stock_list:
-        symbol = f"{stock['symbol']}.TW"  # 台股代碼需加上 .TW
+        symbol = f"{stock['symbol']}.TW"  # 加上 .TW 讓 yfinance 抓台股
         try:
             ticker = yf.Ticker(symbol)
             history = ticker.history(period='1d')
@@ -33,12 +33,13 @@ def get_stocks():
             else:
                 price = round(history['Close'].iloc[-1], 2)
         except Exception as e:
-            print(f"Error fetching price for {symbol}: {e}")
+            print(f"Error fetching {symbol}: {e}")
             price = 0
 
-        # 如果抓不到價格，就跳過該股票
+        print(f"[DEBUG] Fetched {symbol} price: {price}")
+
         if price == 0:
-            continue
+            continue  # 跳過無法取得報價的股票
 
         features = generate_features(price)
         prediction = predict(model, features)
