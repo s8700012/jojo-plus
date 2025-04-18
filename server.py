@@ -5,6 +5,7 @@ from news_scraper import get_latest_news
 import json
 import random
 import datetime
+import os
 
 app = Flask(__name__)
 
@@ -12,7 +13,12 @@ app = Flask(__name__)
 with open('stocks.json', 'r', encoding='utf-8') as f:
     stock_list = json.load(f)
 
-model = load_model()
+# 載入模型
+try:
+    model = load_model()
+except Exception as e:
+    print("模型載入失敗:", e)
+    model = None
 
 @app.route('/')
 def home():
@@ -24,7 +30,7 @@ def get_stocks():
     for stock in stock_list:
         price = round(100 + random.uniform(-5, 5), 2)
         features = generate_features(price)
-        prediction = predict(model, features)
+        prediction = predict(model, features) if model else "N/A"
         data.append({
             "代號": stock["symbol"],
             "名稱": stock["name"],
@@ -45,8 +51,5 @@ def time_now():
     return jsonify({"server_time": datetime.datetime.now().strftime("%H:%M:%S")})
 
 if __name__ == '__main__':
-    app.run(debug=True, port=10000)
-import os
-
-port = int(os.environ.get("PORT", 10000))
-app.run(host='0.0.0.0', port=port)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
