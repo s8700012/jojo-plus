@@ -1,32 +1,36 @@
-[
-  {"symbol": "2330", "name": "台積電"},
-  {"symbol": "2317", "name": "鴻海"},
-  {"symbol": "2454", "name": "聯發科"},
-  {"symbol": "2303", "name": "聯電"},
-  {"symbol": "2881", "name": "富邦金"},
-  {"symbol": "2891", "name": "中信金"},
-  {"symbol": "2603", "name": "長榮"},
-  {"symbol": "2609", "name": "陽明"},
-  {"symbol": "2615", "name": "萬海"},
-  {"symbol": "1101", "name": "台泥"},
-  {"symbol": "1216", "name": "統一"},
-  {"symbol": "1301", "name": "台塑"},
-  {"symbol": "1326", "name": "台化"},
-  {"symbol": "1402", "name": "遠東新"},
-  {"symbol": "2002", "name": "中鋼"},
-  {"symbol": "2105", "name": "正新"},
-  {"symbol": "2207", "name": "和泰車"},
-  {"symbol": "2301", "name": "光寶科"},
-  {"symbol": "2324", "name": "仁寶"},
-  {"symbol": "2354", "name": "鴻準"},
-  {"symbol": "2357", "name": "華碩"},
-  {"symbol": "2382", "name": "廣達"},
-  {"symbol": "2395", "name": "研華"},
-  {"symbol": "2412", "name": "中華電"},
-  {"symbol": "2451", "name": "創見"},
-  {"symbol": "2606", "name": "裕民"},
-  {"symbol": "2801", "name": "彰銀"},
-  {"symbol": "2882", "name": "國泰金"},
-  {"symbol": "3008", "name": "大立光"},
-  {"symbol": "3034", "name": "聯詠"}
-]
+import yfinance as yf
+import datetime
+import json
+
+def get_hot_stocks():
+    # 模擬熱門股票代號池（實際應從API或爬蟲獲取）
+    symbols = [
+        "2603.TW", "2615.TW", "2609.TW", "1101.TW", "1301.TW", "1402.TW", "2002.TW",
+        "2301.TW", "2324.TW", "2357.TW", "2382.TW", "2451.TW", "2606.TW", "3034.TW",
+        "3702.TW", "4904.TW", "1216.TW", "1326.TW", "2395.TW", "3231.TW",
+        "8046.TW", "2412.TW", "3008.TW", "2882.TW", "2345.TW", "2207.TW", "2105.TW",
+        "2881.TW", "2891.TW", "2801.TW"
+    ]
+
+    top_stocks = []
+    for symbol in symbols:
+        try:
+            ticker = yf.Ticker(symbol)
+            df = ticker.history(period='1d', interval='1m')
+            df_filtered = df.between_time("09:00", "09:03")
+            total_volume = df_filtered['Volume'].sum()
+            if total_volume > 0:
+                top_stocks.append((symbol.replace(".TW", ""), total_volume))
+        except:
+            continue
+
+    # 按成交量排序，取前30名
+    top_stocks = sorted(top_stocks, key=lambda x: x[1], reverse=True)[:30]
+    
+    result = [{"symbol": sym, "name": "熱門股"} for sym, _ in top_stocks]
+    with open("stocks.json", "w", encoding="utf-8") as f:
+        json.dump(result, f, ensure_ascii=False, indent=2)
+    return result
+
+if __name__ == "__main__":
+    print(get_hot_stocks())
