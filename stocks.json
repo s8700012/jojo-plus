@@ -1,1 +1,22 @@
-// Content of stocks.json (placeholder for demo)
+[
+  {
+    "code": "2330.TW",
+    "name": "台積電",
+    "price": 850,
+    "direction": "做多",
+    "ai_win_rate": "92%",
+    "entry": 845,
+    "exit": 860,
+    "sim": "+8000"
+  },
+  {
+    "code": "2317.TW",
+    "name": "鴻海",
+    "price": 130,
+    "direction": "做空",
+    "ai_win_rate": "88%",
+    "entry": 132,
+    "exit": 125,
+    "sim": "+1400"
+  }
+]

@@ -1,1 +1,15 @@
-// Content of style.css (placeholder for demo)
+body {
+  font-family: Arial;
+  text-align: center;
+  background: #fff;
+  color: #000;
+}
+table {
+  width: 95%;
+  margin: 20px auto;
+  border-collapse: collapse;
+}
+th, td {
+  padding: 10px;
+  border: 1px solid #ccc;
+}
