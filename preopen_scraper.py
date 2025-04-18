@@ -1,45 +1,38 @@
 import requests
-import pandas as pd
+from bs4 import BeautifulSoup
 import json
-from datetime import datetime
 
-def fetch_top_stocks(limit=30):
-    url = "https://www.twse.com.tw/exchangeReport/MI_INDEX?response=json&date=&type=ALL"
+def fetch_preopen_stocks():
+    url = "https://www.twse.com.tw/zh/page/trading/exchange/MI_INDEX.html"  # 盤前撮合頁（模擬）
     headers = {
         "User-Agent": "Mozilla/5.0"
     }
+    response = requests.get(url, headers=headers)
+    soup = BeautifulSoup(response.text, "html.parser")
 
-    try:
-        response = requests.get(url, headers=headers)
-        data = response.json()
-        table = None
+    # 模擬解析邏輯：實際需調整為該頁實際結構
+    rows = soup.select("table tbody tr")
 
-        # 找出正確的表格
-        for item in data['data5']:
-            if len(item) > 8:  # 避免空資料
-                if not item[0].startswith("00"):  # 排除權值股可能條件，可依需求調整
-                    if table is None:
-                        table = []
-                    table.append({
-                        "symbol": item[0].strip(),
-                        "name": item[1].strip(),
-                        "volume": int(item[2].replace(",", ""))
-                    })
+    result = []
+    for row in rows:
+        cols = row.find_all("td")
+        if len(cols) > 5:
+            try:
+                symbol = cols[0].text.strip()
+                name = cols[1].text.strip()
+                volume = int(cols[2].text.strip().replace(',', ''))
+                if volume > 500:  # 成交量大於 500 視為熱門（可調整）
+                    result.append({"symbol": symbol, "name": name})
+            except:
+                continue
 
-        # 按照成交量排序
-        sorted_stocks = sorted(table, key=lambda x: x['volume'], reverse=True)
+    # 儲存前 30 檔非權值股
+    filtered = result[:30]
+    with open("stocks.json", "w", encoding="utf-8") as f:
+        json.dump(filtered, f, ensure_ascii=False, indent=2)
 
-        # 選出前 N 檔
-        result = [{"symbol": stock["symbol"], "name": stock["name"]} for stock in sorted_stocks[:limit]]
-
-        # 寫入 stocks.json
-        with open("stocks.json", "w", encoding="utf-8") as f:
-            json.dump(result, f, ensure_ascii=False, indent=2)
-
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] 已更新前 {limit} 檔熱門股 stocks.json")
-
-    except Exception as e:
-        print(f"抓取資料錯誤: {e}")
+    return filtered
 
 if __name__ == "__main__":
-    fetch_top_stocks()
+    fetched = fetch_preopen_stocks()
+    print("已更新熱門股票至 stocks.json")
