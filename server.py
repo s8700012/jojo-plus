@@ -1,22 +1,16 @@
-
-from flask import Flask, send_file, send_from_directory, jsonify
+from flask import Flask, jsonify, send_from_directory
 import json
 
 app = Flask(__name__)
 
-@app.route('/')
+@app.route("/")
 def index():
-    return send_file('index.html')
+    return send_from_directory('.', 'index.html')
 
-@app.route('/<path:filename>')
-def serve_static(filename):
-    return send_from_directory('.', filename)
-
-@app.route('/stocks.json')
-def get_stocks():
+@app.route("/data")
+def data():
     with open('stocks.json', 'r', encoding='utf-8') as f:
-        data = json.load(f)
-    return jsonify(data)
+        return jsonify(json.load(f))
 
 if __name__ == '__main__':
-    app.run(debug=True, port=3000)
+    app.run(host='0.0.0.0', port=3000)
