@@ -1,11 +1,10 @@
 from flask import Flask, jsonify, send_file
 from feature_generator import generate_features
 from ai_model import load_model, predict
-from news_scraper import get_latest_news
-import yfinance as yf
 import json
 import random
 import datetime
+import yfinance as yf
 import os
 
 app = Flask(__name__)
@@ -17,14 +16,6 @@ with open('stocks.json', 'r', encoding='utf-8') as f:
 # 載入 AI 模型
 model = load_model()
 
-# 取得台股即時價格
-def get_realtime_price(symbol):
-    try:
-        ticker = yf.Ticker(f"{symbol}.TW")
-        return round(ticker.info['regularMarketPrice'], 2)
-    except:
-        return 0
-
 @app.route('/')
 def home():
     return send_file('index.html')
@@ -33,7 +24,22 @@ def home():
 def get_stocks():
     data = []
     for stock in stock_list:
-        price = get_realtime_price(stock["symbol"])
+        symbol = f"{stock['symbol']}.TW"  # 台股代碼需加上 .TW
+        try:
+            ticker = yf.Ticker(symbol)
+            history = ticker.history(period='1d')
+            if history.empty:
+                price = 0
+            else:
+                price = round(history['Close'].iloc[-1], 2)
+        except Exception as e:
+            print(f"Error fetching price for {symbol}: {e}")
+            price = 0
+
+        # 如果抓不到價格，就跳過該股票
+        if price == 0:
+            continue
+
         features = generate_features(price)
         prediction = predict(model, features)
         data.append({
@@ -47,15 +53,10 @@ def get_stocks():
         })
     return jsonify(data)
 
-@app.route('/news')
-def get_news():
-    return jsonify(get_latest_news())
-
 @app.route('/time')
 def time_now():
     return jsonify({"server_time": datetime.datetime.now().strftime("%H:%M:%S")})
 
-# Render 用 PORT
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
