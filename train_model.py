@@ -1,1 +1,1 @@
-# 模型訓練程式
+// Content of train_model.py (placeholder for demo)

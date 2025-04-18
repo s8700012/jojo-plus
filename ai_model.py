@@ -1,1 +1,1 @@
-# AI 模型推論邏輯
+// Content of ai_model.py (placeholder for demo)

@@ -1,1 +1,1 @@
-# 擷取即時財經新聞
+// Content of news_scraper.py (placeholder for demo)

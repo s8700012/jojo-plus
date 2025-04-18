@@ -1,8 +1,1 @@
-flask
-pandas
-numpy
-yfinance
-scikit-learn
-requests
-beautifulsoup4
-joblib
+// Content of requirements.txt (placeholder for demo)

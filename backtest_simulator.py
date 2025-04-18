@@ -1,1 +1,1 @@
-# 回測模擬單邏輯
+// Content of backtest_simulator.py (placeholder for demo)

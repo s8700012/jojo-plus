@@ -1,1 +1,1 @@
-# 產生技術/籌碼/消息特徵
+// Content of feature_generator.py (placeholder for demo)
