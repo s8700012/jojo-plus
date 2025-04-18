@@ -1,3 +1,4 @@
+# preopen_scraper.py
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -20,7 +21,6 @@ def fetch_preopen_data():
             name = cols[1].text.strip()
             volume_text = cols[4].text.strip().replace(',', '').replace('--', '0')
             volume = int(volume_text)
-            # 排除權值股（如台積電 2330、鴻海 2317）
             if symbol not in ['2330', '2317'] and volume > 0:
                 data.append({'symbol': symbol, 'name': name, 'volume': volume})
         except:
