@@ -1,1 +1,6 @@
-// Content of requirements.txt (placeholder for demo)
+flask
+yfinance
+pandas
+scikit-learn
+requests
+beautifulsoup4
