@@ -6,8 +6,9 @@ import json, random, datetime, yfinance as yf, os
 app = Flask(__name__)
 model = load_model()
 
-with open('stocks.json', 'r', encoding='utf-8') as f:
-    stock_list = json.load(f)
+from stock_selector import get_top_30_stocks  # 新增模組
+
+stock_list = get_top_30_stocks()
 
 @app.route('/')
 def home():
