@@ -1,1 +1,1 @@
-// Content of ai_model.py (placeholder for demo)
+// ai_model.py placeholder content

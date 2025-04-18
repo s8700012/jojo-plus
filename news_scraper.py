@@ -1,1 +1,1 @@
-// Content of news_scraper.py (placeholder for demo)
+// news_scraper.py placeholder content
