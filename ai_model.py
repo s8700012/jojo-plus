@@ -1,31 +1,43 @@
+import os
+import joblib
+from sklearn.ensemble import RandomForestClassifier
+import numpy as np
+
+MODEL_PATH = "model.pkl"
+
 def load_model():
-    return "mock_model_with_kbars"
+    if os.path.exists(MODEL_PATH):
+        return joblib.load(MODEL_PATH)
+    else:
+        return train_model()
+
+def train_model():
+    # 假設訓練資料（可改為真實歷史資料）
+    X = [[100, 98, 97, 50], [90, 92, 91, 55], [105, 104, 103, 45]]
+    y = [1, 0, 1]  # 1=做多, 0=做空
+    model = RandomForestClassifier()
+    model.fit(X, y)
+    joblib.dump(model, MODEL_PATH)
+    return model
 
 def predict(model, features):
-    """
-    使用 1分K、5分K、成交量與大單指標判斷多空：
-    - 若現價 > 5MA 且量增，視為多單
-    - 若大單淨買超明顯，優先偏多
-    """
-    score = 0
+    x = [[
+        features["price"],
+        features["ma5"],
+        features["ma10"],
+        features["rsi"]
+    ]]
+    y_pred = model.predict(x)[0]
+    return "做多" if y_pred == 1 else "做空"
 
-    # 價格與均線關係
-    if features["price"] > features["ma5"]:
-        score += 1
-    if features["price"] > features["ma10"]:
-        score += 1
-
-    # 成交量邏輯
-    if features.get("volume") and features["volume"] > features.get("avg_volume", 1):
-        score += 1
-
-    # 大單邏輯
-    if features.get("big_buy") > features.get("big_sell", 0):
-        score += 1
-
-    if score >= 3:
-        return "做多"
-    elif score <= 1:
-        return "做空"
-    else:
-        return "觀望"
+def retrain_with_new_data(new_features, new_label):
+    model = load_model()
+    x = [[
+        new_features["price"],
+        new_features["ma5"],
+        new_features["ma10"],
+        new_features["rsi"]
+    ]]
+    y = [new_label]
+    model.fit(x, y)  # 緊急再訓練
+    joblib.dump(model, MODEL_PATH)
