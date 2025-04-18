@@ -7,10 +7,15 @@ from ai_model import load_model, predict
 import random
 import datetime
 import yfinance as yf
+import time
 import os
 
 app = Flask(__name__)
 model = load_model()
+
+# 快取區域
+cache_data = []
+cache_timestamp = 0
 
 def fetch_top30_active_stocks():
     url = 'https://www.twse.com.tw/zh/page/trading/exchange/MI_INDEX.html'
@@ -49,6 +54,11 @@ def home():
 
 @app.route('/stocks')
 def get_stocks():
+    global cache_data, cache_timestamp
+    now = time.time()
+    if now - cache_timestamp < 1:
+        return jsonify(cache_data)
+
     top30 = fetch_top30_active_stocks()
     result = []
 
@@ -80,6 +90,8 @@ def get_stocks():
             "AI勝率": f"{random.randint(60, 90)}%"
         })
 
+    cache_data = result
+    cache_timestamp = now
     return jsonify(result)
 
 @app.route('/time')
