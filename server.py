@@ -1,7 +1,9 @@
 from flask import Flask, jsonify, send_file
+import requests
+import pandas as pd
+from bs4 import BeautifulSoup
 from feature_generator import generate_features
 from ai_model import load_model, predict
-from preopen_scraper import get_top30_stocks  # 即時抓熱門股
 import random
 import datetime
 import yfinance as yf
@@ -10,16 +12,47 @@ import os
 app = Flask(__name__)
 model = load_model()
 
+def fetch_top30_active_stocks():
+    url = 'https://www.twse.com.tw/zh/page/trading/exchange/MI_INDEX.html'
+    headers = {
+        'User-Agent': 'Mozilla/5.0'
+    }
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        rows = soup.select('table tr')
+    except Exception as e:
+        print(f"Error fetching stock list: {e}")
+        return []
+
+    data = []
+    for row in rows[1:]:
+        cols = row.find_all('td')
+        if len(cols) < 5:
+            continue
+        try:
+            symbol = cols[0].text.strip()
+            name = cols[1].text.strip()
+            volume = int(cols[2].text.strip().replace(',', '').replace('--', '0'))
+            if symbol not in ['2330', '2317'] and volume > 0:
+                data.append({'symbol': symbol, 'name': name, 'volume': volume})
+        except:
+            continue
+
+    df = pd.DataFrame(data)
+    df = df.sort_values(by='volume', ascending=False).head(30)
+    return df[['symbol', 'name']].to_dict(orient='records')
+
 @app.route('/')
 def home():
     return send_file('index.html')
 
 @app.route('/stocks')
 def get_stocks():
-    data = []
-    top_stocks = get_top30_stocks()  # 每次請求即時擷取
+    top30 = fetch_top30_active_stocks()
+    result = []
 
-    for stock in top_stocks:
+    for stock in top30:
         symbol = f"{stock['symbol']}.TW"
         try:
             ticker = yf.Ticker(symbol)
@@ -29,7 +62,7 @@ def get_stocks():
             else:
                 price = round(history['Close'].iloc[-1], 2)
         except Exception as e:
-            print(f"[Error] {symbol}: {e}")
+            print(f"[Price Error] {symbol}: {e}")
             price = 0
 
         if price == 0:
@@ -37,7 +70,7 @@ def get_stocks():
 
         features = generate_features(price)
         prediction = predict(model, features)
-        data.append({
+        result.append({
             "代號": stock["symbol"],
             "名稱": stock["name"],
             "目前股價": price,
@@ -46,7 +79,8 @@ def get_stocks():
             "建議出場價": round(price * 1.01, 2),
             "AI勝率": f"{random.randint(60, 90)}%"
         })
-    return jsonify(data)
+
+    return jsonify(result)
 
 @app.route('/time')
 def time_now():
@@ -60,4 +94,4 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
 
-app = app  # for render.com
+app = app
