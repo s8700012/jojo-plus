@@ -1,25 +1,24 @@
 from flask import Flask, jsonify, send_file
 from feature_generator import generate_features
 from ai_model import load_model, predict
-import json, random, datetime, yfinance as yf, os
+import json
+import random
+import datetime
+import yfinance as yf
+import os
 
-# 每秒快取：初始化快取變數
-cache_data = []
-cache_time = 0
-
-# 每次啟動時抓取一次熱門 30 檔股票清單（可每分鐘重新取得）
-stock_list = get_top_30_stocks()
-                               
 app = Flask(__name__)
+
+# 載入股票清單
+with open('stocks.json', 'r', encoding='utf-8') as f:
+    stock_list = json.load(f)
+
+# 載入 AI 模型
 model = load_model()
-
-from stock_selector import get_top_30_stocks  # 新增模組
-
-stock_list = get_top_30_stocks()
 
 @app.route('/')
 def home():
-    return send_file("index.html")
+    return send_file('index.html')
 
 @app.route('/stocks')
 def get_stocks():
@@ -27,11 +26,19 @@ def get_stocks():
     for stock in stock_list:
         symbol = f"{stock['symbol']}.TW"
         try:
-            price = round(yf.Ticker(symbol).history(period='1d')['Close'].iloc[-1], 2)
-        except:
+            ticker = yf.Ticker(symbol)
+            history = ticker.history(period='1d')
+            if history.empty:
+                price = 0
+            else:
+                price = round(history['Close'].iloc[-1], 2)
+        except Exception as e:
+            print(f"[Error] {symbol}: {e}")
             price = 0
+
         if price == 0:
             continue
+
         features = generate_features(price)
         prediction = predict(model, features)
         data.append({
@@ -49,6 +56,12 @@ def get_stocks():
 def time_now():
     return jsonify({"server_time": datetime.datetime.now().strftime("%H:%M:%S")})
 
+@app.route('/ping')
+def ping():
+    return "pong"
+
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host='0.0.0.0', port=port)
+
+app = app
