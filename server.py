@@ -5,48 +5,64 @@ import json
 import random
 import datetime
 import yfinance as yf
+import requests
+from bs4 import BeautifulSoup
 import os
 
 app = Flask(__name__)
 
-# 載入股票清單
-with open('stocks.json', 'r', encoding='utf-8') as f:
-    stock_list = json.load(f)
-
-# 載入 AI 模型
 model = load_model()
+tracked_stocks = []
 
-# 每秒更新的快取機制
-price_cache = {}
-
-def fetch_price(symbol):
-    now = datetime.datetime.now()
-    if symbol in price_cache:
-        cached_price, timestamp = price_cache[symbol]
-        if (now - timestamp).seconds < 1:
-            return cached_price
+def fetch_preopen_hot_stocks():
+    url = "https://www.twse.com.tw/zh/page/trading/exchange/TWTB4U.html"
     try:
-        ticker = yf.Ticker(symbol)
-        history = ticker.history(period='1d')
-        price = round(history['Close'].iloc[-1], 2) if not history.empty else 0
+        res = requests.get(url, timeout=10)
+        soup = BeautifulSoup(res.text, "html.parser")
+        table = soup.select_one("table")
+        rows = table.select("tr")[1:51]
+        hot = []
+        for row in rows:
+            cols = row.select("td")
+            if len(cols) >= 2:
+                symbol = cols[0].text.strip()
+                name = cols[1].text.strip()
+                hot.append({"symbol": symbol, "name": name})
+        return hot
     except Exception as e:
-        print(f"[Error] {symbol}: {e}")
-        price = 0
-    price_cache[symbol] = (price, now)
-    return price
+        print("[Error] 擷取熱門股失敗:", e)
+        return []
 
 @app.route('/')
 def home():
-    return send_file('index.html')
+    return send_file("index.html")
 
 @app.route('/stocks')
 def get_stocks():
+    global tracked_stocks
+    now = datetime.datetime.now().strftime("%H:%M")
+
+    if not tracked_stocks and "08:50" <= now <= "09:10":
+        tracked_stocks = fetch_preopen_hot_stocks()
+
+    if not tracked_stocks:
+        with open("stocks.json", "r", encoding="utf-8") as f:
+            tracked_stocks = json.load(f)
+
     data = []
-    for stock in stock_list:
+    for stock in tracked_stocks:
         symbol = f"{stock['symbol']}.TW"
-        price = fetch_price(symbol)
+        try:
+            ticker = yf.Ticker(symbol)
+            hist = ticker.history(period="1d")
+            price = round(hist["Close"].iloc[-1], 2) if not hist.empty else 0
+        except Exception as e:
+            print(f"[Error] {symbol}: {e}")
+            price = 0
+
         if price == 0:
             continue
+
         features = generate_features(price)
         prediction = predict(model, features)
         data.append({
@@ -58,6 +74,7 @@ def get_stocks():
             "建議出場價": round(price * 1.01, 2),
             "AI勝率": f"{random.randint(60, 90)}%"
         })
+
     return jsonify(data)
 
 @app.route('/time')
@@ -68,6 +85,6 @@ def time_now():
 def ping():
     return "pong"
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host="0.0.0.0", port=port)
