@@ -75,5 +75,6 @@ if __name__ == '__main__':
     app.run(host='0.0.0.0', port=port)
 from stock_selector import select_top_30_stocks  # 新增
 
-# 取代原本讀 stocks.json 的方式，改由函式取得
-stock_list = select_top_30_stocks()
+# 使用自動選股取代 stocks.json
+stock_list = select_top_stocks()
+model = load_model(）
