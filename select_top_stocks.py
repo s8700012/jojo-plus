@@ -46,3 +46,11 @@ if __name__ == "__main__":
         print(f"成功儲存 30 檔熱門股票到 stocks.json")
     else:
         print("擷取失敗")
+def select_top_stocks():
+    # 這裡放入你擷取盤前 08:50～09:00 的熱門成交量股票邏輯
+    return [
+        {"symbol": "2603", "name": "長榮"},
+        {"symbol": "2609", "name": "陽明"},
+        {"symbol": "2615", "name": "萬海"},
+        # 最多回傳 30 檔（不含權值股）
+    ]
