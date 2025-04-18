@@ -1,3 +1,8 @@
+import os
+if os.path.exists('preopen_scraper.py'):
+    from generate_stocks import save_to_stocks_json
+    save_to_stocks_json()
+
 from flask import Flask, jsonify, send_file
 import requests
 import pandas as pd
