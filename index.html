@@ -24,44 +24,31 @@
         <th>AI勝率</th>
       </tr>
     </thead>
-    <tbody>
-      <tr><td colspan="7">載入中...</td></tr>
-    </tbody>
+    <tbody></tbody>
   </table>
 
   <script>
     async function fetchData() {
-      try {
-        const res = await fetch('/stocks');
-        const stocks = await res.json();
-        const tbody = document.querySelector('tbody');
-        tbody.innerHTML = '';
-
-        if (stocks.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7">目前無資料</td></tr>';
-          return;
-        }
-
-        stocks.forEach(stock => {
-          const row = `<tr>
-            <td>${stock.代號}</td>
-            <td>${stock.名稱}</td>
-            <td>${stock.目前股價}</td>
-            <td>${stock.建議方向}</td>
-            <td>${stock.建議進場價}</td>
-            <td>${stock.建議出場價}</td>
-            <td>${stock.AI勝率}</td>
-          </tr>`;
-          tbody.innerHTML += row;
-        });
-      } catch (error) {
-        console.error('資料抓取錯誤：', error);
-        document.querySelector('tbody').innerHTML = '<tr><td colspan="7">伺服器錯誤，請稍後重試</td></tr>';
-      }
+      const res = await fetch('/stocks');
+      const stocks = await res.json();
+      const tbody = document.querySelector('tbody');
+      tbody.innerHTML = '';
+      stocks.forEach(stock => {
+        const row = `<tr>
+          <td>${stock.代號}</td>
+          <td>${stock.名稱}</td>
+          <td>${stock.目前股價}</td>
+          <td>${stock.建議方向}</td>
+          <td>${stock.建議進場價}</td>
+          <td>${stock.建議出場價}</td>
+          <td>${stock.AI勝率}</td>
+        </tr>`;
+        tbody.innerHTML += row;
+      });
     }
 
+    setInterval(fetchData, 1000);
     fetchData();
-    setInterval(fetchData, 10000); // 每10秒更新一次
   </script>
 </body>
 </html>
