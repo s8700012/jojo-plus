@@ -24,7 +24,7 @@ def home():
 def get_stocks():
     data = []
     for stock in stock_list:
-        symbol = f"{stock['symbol']}.TW"  # 加上 .TW 讓 yfinance 抓台股
+        symbol = f"{stock['symbol']}.TW"  # Yahoo Finance 台股代碼需加 .TW
         try:
             ticker = yf.Ticker(symbol)
             history = ticker.history(period='1d')
@@ -33,13 +33,11 @@ def get_stocks():
             else:
                 price = round(history['Close'].iloc[-1], 2)
         except Exception as e:
-            print(f"Error fetching {symbol}: {e}")
+            print(f"[Error] {symbol}: {e}")
             price = 0
 
-        print(f"[DEBUG] Fetched {symbol} price: {price}")
-
         if price == 0:
-            continue  # 跳過無法取得報價的股票
+            continue
 
         features = generate_features(price)
         prediction = predict(model, features)
@@ -57,6 +55,10 @@ def get_stocks():
 @app.route('/time')
 def time_now():
     return jsonify({"server_time": datetime.datetime.now().strftime("%H:%M:%S")})
+
+@app.route('/ping')
+def ping():
+    return "pong"
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
