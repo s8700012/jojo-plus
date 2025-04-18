@@ -1,12 +1,13 @@
 from flask import Flask, jsonify, send_file
 from feature_generator import generate_features
 from ai_model import load_model, predict
-from news_scraper import get_latest_news
 import json
-import random
-import datetime
 import yfinance as yf
+import datetime
+import random
 import os
+import threading
+import time
 
 app = Flask(__name__)
 
@@ -17,6 +18,25 @@ with open('stocks.json', 'r', encoding='utf-8') as f:
 # 載入 AI 模型
 model = load_model()
 
+# 建立快取儲存報價
+price_cache = {}
+
+def update_price_cache():
+    while True:
+        for stock in stock_list:
+            symbol = f"{stock['symbol']}.TW"
+            try:
+                ticker = yf.Ticker(symbol)
+                history = ticker.history(period='1d')
+                if not history.empty:
+                    price = round(history['Close'].iloc[-1], 2)
+                    price_cache[stock['symbol']] = price
+            except Exception as e:
+                print(f"[快取錯誤] {symbol}: {e}")
+        time.sleep(1)
+
+threading.Thread(target=update_price_cache, daemon=True).start()
+
 @app.route('/')
 def home():
     return send_file('index.html')
@@ -25,18 +45,7 @@ def home():
 def get_stocks():
     data = []
     for stock in stock_list:
-        symbol = f"{stock['symbol']}.TW"
-        try:
-            ticker = yf.Ticker(symbol)
-            history = ticker.history(period='1d')
-            if history.empty:
-                price = 0
-            else:
-                price = round(history['Close'].iloc[-1], 2)
-        except Exception as e:
-            print(f"[Error] {symbol}: {e}")
-            price = 0
-
+        price = price_cache.get(stock['symbol'], 0)
         if price == 0:
             continue
 
@@ -52,10 +61,6 @@ def get_stocks():
             "AI勝率": f"{random.randint(60, 90)}%"
         })
     return jsonify(data)
-
-@app.route('/news')
-def news():
-    return jsonify(get_latest_news())
 
 @app.route('/time')
 def time_now():
