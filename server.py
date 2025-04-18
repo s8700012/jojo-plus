@@ -8,7 +8,7 @@ cache_data = []
 cache_time = 0
 
 # 每次啟動時抓取一次熱門 30 檔股票清單（可每分鐘重新取得）
-stock_list = get_top_30_stocks(）
+stock_list = get_top_30_stocks()
                                
 app = Flask(__name__)
 model = load_model()
