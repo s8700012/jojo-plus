@@ -2,6 +2,7 @@ from flask import Flask, jsonify, send_file
 from feature_generator import generate_features
 from ai_model import load_model, predict
 import json
+import random
 import datetime
 import yfinance as yf
 import os
@@ -47,7 +48,7 @@ def get_stocks():
             "建議方向": prediction,
             "建議進場價": round(price * 0.99, 2),
             "建議出場價": round(price * 1.01, 2),
-            "AI勝率": f"{round(0.6 + (price % 0.1), 2)*100:.0f}%"
+            "AI勝率": f"{random.randint(60, 90)}%"
         })
     return jsonify(data)
 
@@ -62,3 +63,5 @@ def ping():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
+
+app = app
