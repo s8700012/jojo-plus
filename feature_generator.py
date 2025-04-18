@@ -1,3 +1,3 @@
-# 特徵工程模組
 def generate_features(price):
-    return [price, price * 1.02, price * 0.98]
+    # 可擴充技術指標、均線、MACD等，簡化為價格特徵
+    return [price, price * 0.95, price * 1.05]
