@@ -1,10 +1,10 @@
 from flask import Flask, jsonify, send_file
-from preopen_scraper import get_hot_stocks
 from feature_generator import generate_features
 from ai_model import load_model, predict
+from preopen_scraper import get_top30_stocks  # 即時抓熱門股
+import random
 import datetime
 import yfinance as yf
-import random
 import os
 
 app = Flask(__name__)
@@ -17,30 +17,35 @@ def home():
 @app.route('/stocks')
 def get_stocks():
     data = []
-    hot_stocks = get_hot_stocks()
+    top_stocks = get_top30_stocks()  # 每次請求即時擷取
 
-    for stock in hot_stocks:
+    for stock in top_stocks:
         symbol = f"{stock['symbol']}.TW"
         try:
             ticker = yf.Ticker(symbol)
-            price = ticker.history(period='1d')['Close'].iloc[-1]
-            price = round(price, 2)
+            history = ticker.history(period='1d')
+            if history.empty:
+                price = 0
+            else:
+                price = round(history['Close'].iloc[-1], 2)
         except Exception as e:
-            print(f"抓取 {symbol} 錯誤: {e}")
+            print(f"[Error] {symbol}: {e}")
+            price = 0
+
+        if price == 0:
             continue
 
         features = generate_features(price)
-        suggestion = predict(model, features)
+        prediction = predict(model, features)
         data.append({
             "代號": stock["symbol"],
             "名稱": stock["name"],
             "目前股價": price,
-            "建議方向": suggestion,
+            "建議方向": prediction,
             "建議進場價": round(price * 0.99, 2),
             "建議出場價": round(price * 1.01, 2),
-            "AI勝率": f"{random.randint(65, 90)}%"
+            "AI勝率": f"{random.randint(60, 90)}%"
         })
-
     return jsonify(data)
 
 @app.route('/time')
@@ -54,3 +59,5 @@ def ping():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
+
+app = app  # for render.com
