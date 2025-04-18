@@ -1,4 +1,4 @@
 flask
-yfinance
+yfinance==0.2.33
 pandas
 scikit-learn
