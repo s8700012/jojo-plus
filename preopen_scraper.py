@@ -1,38 +1,33 @@
 import requests
-from bs4 import BeautifulSoup
 import json
 
 def fetch_preopen_stocks():
-    url = "https://www.twse.com.tw/zh/page/trading/exchange/MI_INDEX.html"  # 盤前撮合頁（模擬）
-    headers = {
-        "User-Agent": "Mozilla/5.0"
-    }
-    response = requests.get(url, headers=headers)
-    soup = BeautifulSoup(response.text, "html.parser")
+    url = 'https://example.com/api/preopen'  # 改為真實盤前 API
+    try:
+        response = requests.get(url, timeout=10)
+        data = response.json()
 
-    # 模擬解析邏輯：實際需調整為該頁實際結構
-    rows = soup.select("table tbody tr")
+        # 篩選熱門非權值股邏輯（示範）
+        filtered = []
+        for item in data:
+            if item['symbol'] not in ['2330', '2317']:  # 排除權值股
+                filtered.append({
+                    "symbol": item["symbol"],
+                    "name": item["name"]
+                })
+            if len(filtered) == 30:
+                break
 
-    result = []
-    for row in rows:
-        cols = row.find_all("td")
-        if len(cols) > 5:
-            try:
-                symbol = cols[0].text.strip()
-                name = cols[1].text.strip()
-                volume = int(cols[2].text.strip().replace(',', ''))
-                if volume > 500:  # 成交量大於 500 視為熱門（可調整）
-                    result.append({"symbol": symbol, "name": name})
-            except:
-                continue
+        # 寫入 stocks.json
+        if filtered:
+            with open("stocks.json", "w", encoding="utf-8") as f:
+                json.dump(filtered, f, ensure_ascii=False, indent=2)
+            print("成功寫入 stocks.json，共", len(filtered), "檔")
+        else:
+            print("無熱門股票資料")
 
-    # 儲存前 30 檔非權值股
-    filtered = result[:30]
-    with open("stocks.json", "w", encoding="utf-8") as f:
-        json.dump(filtered, f, ensure_ascii=False, indent=2)
-
-    return filtered
+    except Exception as e:
+        print("發生錯誤：", e)
 
 if __name__ == "__main__":
-    fetched = fetch_preopen_stocks()
-    print("已更新熱門股票至 stocks.json")
+    fetch_preopen_stocks()
