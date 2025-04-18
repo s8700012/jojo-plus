@@ -1,1 +1,0 @@
-// backtest_simulator.py placeholder content
