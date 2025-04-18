@@ -1,40 +1,29 @@
 from flask import Flask, jsonify, send_file
 from feature_generator import generate_features
 from ai_model import load_model, predict
-import json
-import random
-import datetime
-import yfinance as yf
-import os
+import json, random, datetime, yfinance as yf, os
 
 app = Flask(__name__)
-
-# 載入 AI 模型
 model = load_model()
+
+with open('stocks.json', 'r', encoding='utf-8') as f:
+    stock_list = json.load(f)
 
 @app.route('/')
 def home():
-    return send_file('index.html')
+    return send_file("index.html")
 
 @app.route('/stocks')
 def get_stocks():
-    with open('stocks.json', 'r', encoding='utf-8') as f:
-        stock_list = json.load(f)
-
     data = []
     for stock in stock_list:
         symbol = f"{stock['symbol']}.TW"
         try:
-            ticker = yf.Ticker(symbol)
-            history = ticker.history(period='1d')
-            price = round(history['Close'].iloc[-1], 2) if not history.empty else 0
-        except Exception as e:
-            print(f"[Error] {symbol}: {e}")
+            price = round(yf.Ticker(symbol).history(period='1d')['Close'].iloc[-1], 2)
+        except:
             price = 0
-
         if price == 0:
             continue
-
         features = generate_features(price)
         prediction = predict(model, features)
         data.append({
@@ -52,10 +41,6 @@ def get_stocks():
 def time_now():
     return jsonify({"server_time": datetime.datetime.now().strftime("%H:%M:%S")})
 
-@app.route('/ping')
-def ping():
-    return "pong"
-
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host="0.0.0.0", port=port)
