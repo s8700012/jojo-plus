@@ -1,6 +1,5 @@
 import requests
 import pandas as pd
-from datetime import datetime
 from bs4 import BeautifulSoup
 import json
 
@@ -17,13 +16,16 @@ def fetch_preopen_data():
         try:
             symbol = cols[0].text.strip()
             name = cols[1].text.strip()
-            volume = int(cols[4].text.strip().replace(',', ''))
-            data.append({'symbol': symbol, 'name': name, 'volume': volume})
+            volume_text = cols[4].text.strip().replace(',', '').replace('--', '0')
+            volume = int(volume_text)
+            if volume > 0:  # 避免無效資料
+                data.append({'symbol': symbol, 'name': name, 'volume': volume})
         except:
             continue
 
     df = pd.DataFrame(data)
     df = df.sort_values(by='volume', ascending=False).head(30)
+
     with open('stocks.json', 'w', encoding='utf-8') as f:
         json.dump(df[['symbol', 'name']].to_dict(orient='records'), f, ensure_ascii=False, indent=2)
 
