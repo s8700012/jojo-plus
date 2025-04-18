@@ -1,54 +1,48 @@
-import yfinance as yf
-import pandas as pd
+import requests
+from bs4 import BeautifulSoup
 import json
-from datetime import datetime, timedelta
+import datetime
 
-# 排除的權值股
-exclude_symbols = ['2330', '2317', '2454', '2881', '2882', '2303']
+# 排除的權值股代碼（可擴充）
+EXCLUDE_SYMBOLS = {"2330", "2317", "2454", "2303", "2881", "2891"}
 
-# 擬定候選台股（實務可改為全市場清單）
-candidate_symbols = ['2330', '2317', '2454', '2303', '2881', '2882', '2603', '2609',
-                     '2615', '1101', '1216', '1301', '1326', '1402', '2002', '2105',
-                     '2207', '2301', '2324', '2354', '2357', '2382', '2395', '2412',
-                     '2451', '2606', '2801', '3008', '3034', '3231', '4904', '3702',
-                     '3037', '2345']
+def fetch_top_volume_stocks():
+    url = "https://tw.stock.yahoo.com/market/most-active"
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
 
-# 模擬時間範圍（盤前試撮或開盤初期）
-start_time = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
-end_time = datetime.now().strftime('%Y-%m-%d')
-
-selected = []
-for symbol in candidate_symbols:
-    if symbol in exclude_symbols:
-        continue
     try:
-        ticker = yf.Ticker(f"{symbol}.TW")
-        hist = ticker.history(start=start_time, end=end_time, interval="1m")
-        volume_sum = hist['Volume'].sum()
-        if volume_sum > 0:
-            selected.append((symbol, volume_sum))
+        res = requests.get(url, headers=headers, timeout=10)
+        res.raise_for_status()
+        soup = BeautifulSoup(res.text, "html.parser")
+        rows = soup.select("table tbody tr")
+
+        result = []
+        for row in rows:
+            cols = row.find_all("td")
+            if len(cols) >= 5:
+                symbol = cols[0].text.strip().split(" ")[0]
+                name = cols[0].text.strip().split(" ")[-1]
+                if symbol not in EXCLUDE_SYMBOLS:
+                    result.append({"symbol": symbol, "name": name})
+                if len(result) == 30:
+                    break
+        return result
+
     except Exception as e:
-        print(f"Error fetching {symbol}: {e}")
+        print("[Error] 無法取得熱門成交量股票：", e)
+        return []
 
-# 按成交量排序，取前 30 檔
-selected = sorted(selected, key=lambda x: x[1], reverse=True)[:30]
+def save_to_stocks_json(stocks):
+    with open("stocks.json", "w", encoding="utf-8") as f:
+        json.dump(stocks, f, ensure_ascii=False, indent=2)
 
-# 加上名稱（實務可改抓 API）
-symbol_name_map = {
-    '2603': '長榮', '2609': '陽明', '2615': '萬海', '1101': '台泥', '1216': '統一',
-    '1301': '台塑', '1326': '台化', '1402': '遠東新', '2002': '中鋼', '2105': '正新',
-    '2207': '和泰車', '2301': '光寶科', '2324': '仁寶', '2354': '鴻準', '2357': '華碩',
-    '2382': '廣達', '2395': '研華', '2412': '中華電', '2451': '創見', '2606': '裕民',
-    '2801': '彰銀', '3008': '大立光', '3034': '聯詠', '3231': '緯創', '4904': '遠傳',
-    '3702': '大聯大', '3037': '欣興', '2345': '智邦'
-}
-
-result = []
-for symbol, _ in selected:
-    result.append({"symbol": symbol, "name": symbol_name_map.get(symbol, "")})
-
-# 寫入 stocks.json
-with open("stocks.json", "w", encoding="utf-8") as f:
-    json.dump(result, f, ensure_ascii=False, indent=2)
-
-print("stocks.json 已更新")
+if __name__ == "__main__":
+    print(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] 擷取熱門股票中...")
+    top_stocks = fetch_top_volume_stocks()
+    if top_stocks:
+        save_to_stocks_json(top_stocks)
+        print(f"成功儲存 30 檔熱門股票到 stocks.json")
+    else:
+        print("擷取失敗")
