@@ -1,0 +1,22 @@
+[
+  {
+    "code": "2330.TW",
+    "name": "台積電",
+    "price": 847.0,
+    "direction": "做多",
+    "ai_win_rate": "91%",
+    "entry": 845,
+    "exit": 858,
+    "sim": "+1800"
+  },
+  {
+    "code": "2303.TW",
+    "name": "聯電",
+    "price": 49.5,
+    "direction": "做空",
+    "ai_win_rate": "84%",
+    "entry": 50,
+    "exit": 47,
+    "sim": "-500"
+  }
+]
