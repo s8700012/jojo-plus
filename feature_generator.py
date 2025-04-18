@@ -1,37 +1,38 @@
-import numpy as np
-import pandas as pd
-import yfinance as yf
+import random
 
-def generate_features(symbol):
-    symbol = f"{symbol}.TW"
-    df = yf.download(symbol, period="5d", interval="1m", progress=False)
+def generate_features(price):
+    # 模擬過去幾日價格，實務上應接收歷史資料
+    history = [price * (1 + random.uniform(-0.02, 0.02)) for _ in range(10)]
     
-    if df.empty or len(df) < 20:
-        return {}
-
-    df['MA5'] = df['Close'].rolling(window=5).mean()
-    df['MA10'] = df['Close'].rolling(window=10).mean()
-    df['EMA5'] = df['Close'].ewm(span=5, adjust=False).mean()
-    df['RSI'] = compute_rsi(df['Close'], 14)
-    df['Volume_MA5'] = df['Volume'].rolling(window=5).mean()
-    df['Price_Change'] = df['Close'].pct_change().fillna(0)
-
-    latest = df.iloc[-1]
-    features = {
-        "price": round(latest['Close'], 2),
-        "ma5": round(latest['MA5'], 2),
-        "ma10": round(latest['MA10'], 2),
-        "ema5": round(latest['EMA5'], 2),
-        "rsi": round(latest['RSI'], 2),
-        "volume_ma5": int(latest['Volume_MA5']),
-        "price_change": round(latest['Price_Change'], 4)
+    ma5 = sum(history[-5:]) / 5
+    ma10 = sum(history[-10:]) / 10
+    rsi = calculate_rsi(history)
+    macd = ma5 - ma10
+    k, d = calculate_kd(history)
+    
+    return {
+        "price": price,
+        "ma5": round(ma5, 2),
+        "ma10": round(ma10, 2),
+        "rsi": round(rsi, 2),
+        "macd": round(macd, 2),
+        "k": round(k, 2),
+        "d": round(d, 2)
     }
-    return features
 
-def compute_rsi(series, period):
-    delta = series.diff()
-    gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
-    rs = gain / (loss + 1e-10)
-    rsi = 100 - (100 / (1 + rs))
-    return rsi
+def calculate_rsi(history):
+    gains = [max(history[i] - history[i - 1], 0) for i in range(1, len(history))]
+    losses = [max(history[i - 1] - history[i], 0) for i in range(1, len(history))]
+    avg_gain = sum(gains) / len(gains) if gains else 0.01
+    avg_loss = sum(losses) / len(losses) if losses else 0.01
+    rs = avg_gain / avg_loss
+    return 100 - (100 / (1 + rs))
+
+def calculate_kd(history):
+    high = max(history[-9:])
+    low = min(history[-9:])
+    close = history[-1]
+    rsv = (close - low) / (high - low) * 100 if high != low else 50
+    k = 2 / 3 * 50 + 1 / 3 * rsv
+    d = 2 / 3 * 50 + 1 / 3 * k
+    return k, d
