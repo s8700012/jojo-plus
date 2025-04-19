@@ -32,3 +32,8 @@ def get_top30_preopen():
     except Exception as e:
         print(f"[錯誤] 無法擷取盤前資料: {e}")
         return []
+[
+  {"symbol": "2603", "name": "長榮"},
+  {"symbol": "2615", "name": "萬海"},
+  ...
+]
