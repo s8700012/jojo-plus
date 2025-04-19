@@ -1,8 +1,7 @@
+# preopen_scraper.py
 import requests
 import pandas as pd
-import time
 import json
-import os
 from datetime import datetime
 
 def fetch_market_data(top_n=30):
@@ -26,16 +25,11 @@ def fetch_market_data(top_n=30):
         columns = table["fields"]
 
         df = pd.DataFrame(rows, columns=columns)
-
-        # 欄位轉型與清洗
         df = df[["證券代號", "證券名稱", "成交股數", "成交金額", "收盤價", "成交筆數"]].copy()
         for col in ["成交股數", "成交金額", "成交筆數", "收盤價"]:
             df[col] = pd.to_numeric(df[col].astype(str).str.replace(",", ""), errors='coerce').fillna(0)
 
-        # 模擬週轉率（成交股數 / 假設發行股數100萬張）
         df["週轉率%"] = round(df["成交股數"] / 1000000 * 100, 2)
-
-        # 按成交金額排序選前N名
         df = df.sort_values("成交金額", ascending=False)
         top_stocks = df.head(top_n)
 
@@ -43,22 +37,20 @@ def fetch_market_data(top_n=30):
         for _, row in top_stocks.iterrows():
             results.append({
                 "symbol": row["證券代號"],
-                "name": row["證券名稱"],
-                "price": round(row["收盤價"], 2),
-                "volume": int(row["成交股數"]),
-                "turnover_rate": row["週轉率%"]
+                "name": row["證券名稱"]
             })
 
-        print(f"[成功] 擷取完成，共取得 {len(results)} 檔")
+        # 儲存至 stocks.json（需使用絕對路徑）
+        with open("stocks.json", "w", encoding="utf-8") as f:
+            json.dump(results, f, ensure_ascii=False, indent=2)
+
+        print(f"[成功] 已更新 stocks.json，共 {len(results)} 檔")
         return results
 
     except Exception as e:
-        print(f"[錯誤] 擷取資料失敗: {e}")
+        print(f"[錯誤] 擷取失敗: {e}")
         return []
 
-# 測試入口點
+# 測試用
 if __name__ == "__main__":
-    stocks = fetch_market_data()
-    for stock in stocks:
-        print(f"{stock['symbol']} {stock['name']} 價格: {stock['price']}，週轉率: {stock['turnover_rate']}%")
-        time.sleep(0.05)
+    fetch_market_data()
