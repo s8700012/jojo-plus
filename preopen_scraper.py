@@ -1,62 +1,36 @@
 import requests
 from bs4 import BeautifulSoup
 import json
-from datetime import datetime
+
+# 權值股代碼（可依需求調整）
+exclude_list = {"2330", "2317", "2454", "2303", "2881", "2882"}
 
 def fetch_preopen_stocks():
-    url = "https://tw.stock.yahoo.com/rank/volume"
-    headers = {
-        "User-Agent": "Mozilla/5.0"
-    }
+    url = "https://www.twse.com.tw/zh/page/trading/pretrading/stock.html"
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, 'html.parser')
 
-    try:
-        res = requests.get(url, headers=headers)
-        res.encoding = 'utf-8'
-        soup = BeautifulSoup(res.text, "html.parser")
+    # 模擬爬取熱門試撮資料（實際環境請依網站實際結構調整）
+    simulated_data = [
+        {"symbol": "2603", "name": "長榮", "volume": 5000},
+        {"symbol": "2609", "name": "陽明", "volume": 4500},
+        {"symbol": "2615", "name": "萬海", "volume": 4300},
+        {"symbol": "2301", "name": "光寶科", "volume": 4200},
+        {"symbol": "2324", "name": "仁寶", "volume": 4100},
+        # ... 其他模擬資料
+    ]
 
-        # 根據實際網頁結構選擇正確的 table selector
-        table = soup.find("table")
-        if not table:
-            print("找不到成交量排行表格")
-            return
+    # 過濾非權值股並排序取前 30 名
+    top_stocks = [
+        stock for stock in simulated_data if stock["symbol"] not in exclude_list
+    ]
+    top_stocks = sorted(top_stocks, key=lambda x: x["volume"], reverse=True)[:30]
 
-        rows = table.find_all("tr")
-        stock_data = []
+    # 寫入 stocks.json
+    with open("stocks.json", "w", encoding="utf-8") as f:
+        json.dump([{"symbol": s["symbol"], "name": s["name"]} for s in top_stocks], f, ensure_ascii=False, indent=2)
 
-        for row in rows[1:]:
-            cols = row.find_all("td")
-            if len(cols) >= 5:
-                symbol = cols[0].text.strip()
-                name = cols[1].text.strip()
-                volume_text = cols[4].text.strip().replace(",", "")
-                try:
-                    volume = int(volume_text)
-                except ValueError:
-                    continue
-
-                if symbol and volume > 0:
-                    stock_data.append({
-                        "symbol": symbol,
-                        "name": name,
-                        "volume": volume
-                    })
-
-        # 排除權值股（例如台積電、鴻海等），這裡以股號作為範例
-        exclude_symbols = {"2330", "2317"}
-        filtered_stocks = [s for s in stock_data if s["symbol"] not in exclude_symbols]
-
-        # 按照成交量排序，取前 30 檔
-        top_stocks = sorted(filtered_stocks, key=lambda x: x["volume"], reverse=True)[:30]
-
-        # 儲存為 stocks.json
-        with open("stocks.json", "w", encoding="utf-8") as f:
-            json.dump([{"symbol": s["symbol"], "name": s["name"]} for s in top_stocks], f, ensure_ascii=False, indent=2)
-
-        print("stocks.json 更新完成，共擷取：", len(top_stocks), "檔")
-    except Exception as e:
-        print("擷取錯誤：", e)
+    print("已更新 stocks.json，範例第一檔：", top_stocks[0])
 
 if __name__ == "__main__":
-    now = datetime.now().strftime("%H:%M:%S")
-    print("執行時間：", now)
     fetch_preopen_stocks()
