@@ -1,32 +1,47 @@
-import requests
-from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+import time
 import json
-from datetime import datetime
 
-def fetch_top30_stocks():
-    url = "https://www.twse.com.tw/zh/page/trading/idx/MI_5MINS_HOT.html"
-    response = requests.get(url)
-    soup = BeautifulSoup(response.text, "html.parser")
-    
-    table = soup.find("table")
-    if not table:
-        return []
+def fetch_hot_stocks(url="https://www.wantgoo.com/stock/hot-trade"):
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
 
-    rows = table.find_all("tr")[1:]
+    driver = webdriver.Chrome(options=options)
+    driver.get(url)
+    time.sleep(3)  # 等待 JS 載入
+
     stocks = []
-    for row in rows:
-        cols = row.find_all("td")
-        if len(cols) >= 2:
-            symbol = cols[0].text.strip()
-            name = cols[1].text.strip()
-            if symbol.isdigit():
-                stocks.append({"symbol": symbol, "name": name})
-        if len(stocks) >= 30:
-            break
+
+    try:
+        rows = driver.find_elements(By.CSS_SELECTOR, ".hotStock-table tbody tr")
+        for row in rows[:50]:  # 預抓最多前 50 檔
+            cols = row.find_elements(By.TAG_NAME, "td")
+            if len(cols) >= 3:
+                symbol = cols[0].text.strip()
+                name = cols[1].text.strip()
+
+                # 過濾權值股
+                if symbol not in ["2330", "2317", "2454", "2882", "2881"]:  # 可擴充
+                    stocks.append({"symbol": symbol, "name": name})
+            if len(stocks) >= 30:
+                break
+    except Exception as e:
+        print(f"[ERROR] 擷取失敗: {e}")
+    finally:
+        driver.quit()
+
     return stocks
 
+def save_to_json(stocks, filename="stocks.json"):
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(stocks, f, ensure_ascii=False, indent=2)
+
 if __name__ == "__main__":
-    top_stocks = fetch_top30_stocks()
-    with open("stocks.json", "w", encoding="utf-8") as f:
-        json.dump(top_stocks, f, ensure_ascii=False, indent=2)
-    print(f"[{datetime.now()}] 已儲存最新熱門 30 檔股票至 stocks.json")
+    print("正在擷取熱門成交量股票...")
+    result = fetch_hot_stocks()
+    save_to_json(result)
+    print("已更新 stocks.json（熱門前 30 檔）")
