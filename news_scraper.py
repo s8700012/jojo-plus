@@ -2,14 +2,15 @@ import requests
 from bs4 import BeautifulSoup
 
 def get_latest_news():
-    url = 'https://tw.stock.yahoo.com/'
-    res = requests.get(url)
-    soup = BeautifulSoup(res.text, 'html.parser')
+    url = "https://tw.stock.yahoo.com/"
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, "html.parser")
     headlines = []
-    for tag in soup.select('a[href*="/news"]')[:5]:
-        title = tag.text.strip()
-        link = tag['href']
-        if not link.startswith('http'):
-            link = "https://tw.stock.yahoo.com" + link
-        headlines.append({"title": title, "url": link})
+    for item in soup.select("a.Fz(20px)"):
+        title = item.get_text(strip=True)
+        link = item.get("href")
+        if title and link:
+            headlines.append({"title": title, "url": link})
+        if len(headlines) >= 5:
+            break
     return headlines
