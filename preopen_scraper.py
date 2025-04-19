@@ -2,7 +2,6 @@ import requests
 from bs4 import BeautifulSoup
 import json
 
-# 權值股代碼（可依需求調整）
 exclude_list = {"2330", "2317", "2454", "2303", "2881", "2882"}
 
 def fetch_preopen_stocks():
@@ -10,23 +9,19 @@ def fetch_preopen_stocks():
     response = requests.get(url)
     soup = BeautifulSoup(response.text, 'html.parser')
 
-    # 模擬爬取熱門試撮資料（實際環境請依網站實際結構調整）
     simulated_data = [
         {"symbol": "2603", "name": "長榮", "volume": 5000},
         {"symbol": "2609", "name": "陽明", "volume": 4500},
         {"symbol": "2615", "name": "萬海", "volume": 4300},
         {"symbol": "2301", "name": "光寶科", "volume": 4200},
         {"symbol": "2324", "name": "仁寶", "volume": 4100},
-        # ... 其他模擬資料
     ]
 
-    # 過濾非權值股並排序取前 30 名
     top_stocks = [
         stock for stock in simulated_data if stock["symbol"] not in exclude_list
     ]
     top_stocks = sorted(top_stocks, key=lambda x: x["volume"], reverse=True)[:30]
 
-    # 寫入 stocks.json
     with open("stocks.json", "w", encoding="utf-8") as f:
         json.dump([{"symbol": s["symbol"], "name": s["name"]} for s in top_stocks], f, ensure_ascii=False, indent=2)
 
