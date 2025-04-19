@@ -27,7 +27,7 @@ def get_stocks():
         symbol = f"{stock['symbol']}.TW"
         try:
             ticker = yf.Ticker(symbol)
-            history = ticker.history(period='1d', interval='1m')
+            history = ticker.history(period='1d')
             if history.empty:
                 price = 0
             else:
@@ -63,6 +63,3 @@ def ping():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-
-# for render compatibility
-app = app
