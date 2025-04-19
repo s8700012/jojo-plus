@@ -1,29 +1,48 @@
 import requests
 from bs4 import BeautifulSoup
-import datetime
 import json
+import time
+from datetime import datetime
 
 def fetch_preopen_stocks():
-    url = "https://tw.stock.yahoo.com/rank/pre-volume"  # 模擬來源（需換為真實盤前來源）
-    res = requests.get(url)
-    soup = BeautifulSoup(res.text, 'html.parser')
+    url = "https://example.com/preopen"  # 替換為真實網址
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
 
-    symbols = []
-    rows = soup.select('table tbody tr')
-    for row in rows:
-        cols = row.text.split()
-        if len(cols) >= 2:
-            symbol = cols[0]
-            name = cols[1]
-            if not symbol.startswith("00"):  # 過濾權值股（簡單判斷）
-                symbols.append({"symbol": symbol, "name": name})
-        if len(symbols) >= 30:
-            break
+    try:
+        res = requests.get(url, headers=headers)
+        soup = BeautifulSoup(res.text, "html.parser")
 
-    with open('stocks.json', 'w', encoding='utf-8') as f:
-        json.dump(symbols, f, ensure_ascii=False, indent=2)
+        table_rows = soup.select("table tr")
+        stock_data = []
 
-if __name__ == '__main__':
-    now = datetime.datetime.now().time()
-    if datetime.time(8, 50) <= now <= datetime.time(9, 3):
-        fetch_preopen_stocks()
+        for row in table_rows[1:]:
+            cols = row.find_all("td")
+            if len(cols) >= 5:
+                symbol = cols[0].text.strip()
+                name = cols[1].text.strip()
+                volume = int(cols[4].text.replace(",", "").strip())
+
+                if symbol and volume > 0:
+                    stock_data.append({
+                        "symbol": symbol,
+                        "name": name,
+                        "volume": volume
+                    })
+
+        # 按照成交量排序，取前 30 檔（可排除權值股）
+        top_stocks = sorted(stock_data, key=lambda x: x["volume"], reverse=True)[:30]
+
+        # 儲存為 stocks.json
+        with open("stocks.json", "w", encoding="utf-8") as f:
+            json.dump([{"symbol": s["symbol"], "name": s["name"]} for s in top_stocks], f, ensure_ascii=False, indent=2)
+
+        print("stocks.json 更新完成，共擷取：", len(top_stocks), "檔")
+    except Exception as e:
+        print("擷取錯誤：", e)
+
+if __name__ == "__main__":
+    now = datetime.now().strftime("%H:%M:%S")
+    print("執行時間：", now)
+    fetch_preopen_stocks()
