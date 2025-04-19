@@ -1,28 +1,38 @@
 import requests
 from bs4 import BeautifulSoup
 import json
-import time
 from datetime import datetime
 
 def fetch_preopen_stocks():
-    url = "https://example.com/preopen"  # 替換為真實網址
+    url = "https://tw.stock.yahoo.com/rank/volume"
     headers = {
         "User-Agent": "Mozilla/5.0"
     }
 
     try:
         res = requests.get(url, headers=headers)
+        res.encoding = 'utf-8'
         soup = BeautifulSoup(res.text, "html.parser")
 
-        table_rows = soup.select("table tr")
+        # 根據實際網頁結構選擇正確的 table selector
+        table = soup.find("table")
+        if not table:
+            print("找不到成交量排行表格")
+            return
+
+        rows = table.find_all("tr")
         stock_data = []
 
-        for row in table_rows[1:]:
+        for row in rows[1:]:
             cols = row.find_all("td")
             if len(cols) >= 5:
                 symbol = cols[0].text.strip()
                 name = cols[1].text.strip()
-                volume = int(cols[4].text.replace(",", "").strip())
+                volume_text = cols[4].text.strip().replace(",", "")
+                try:
+                    volume = int(volume_text)
+                except ValueError:
+                    continue
 
                 if symbol and volume > 0:
                     stock_data.append({
@@ -31,8 +41,12 @@ def fetch_preopen_stocks():
                         "volume": volume
                     })
 
-        # 按照成交量排序，取前 30 檔（可排除權值股）
-        top_stocks = sorted(stock_data, key=lambda x: x["volume"], reverse=True)[:30]
+        # 排除權值股（例如台積電、鴻海等），這裡以股號作為範例
+        exclude_symbols = {"2330", "2317"}
+        filtered_stocks = [s for s in stock_data if s["symbol"] not in exclude_symbols]
+
+        # 按照成交量排序，取前 30 檔
+        top_stocks = sorted(filtered_stocks, key=lambda x: x["volume"], reverse=True)[:30]
 
         # 儲存為 stocks.json
         with open("stocks.json", "w", encoding="utf-8") as f:
