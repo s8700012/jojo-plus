@@ -1,5 +1,1 @@
 
-stocks = get_top30_preopen()
-if not stocks:
-    logging.warning("無法擷取盤前熱門股，使用預設測試資料")
-    stocks = [{"symbol": "2603", "name": "長榮"}, {"symbol": "2615", "name": "萬海"}]
