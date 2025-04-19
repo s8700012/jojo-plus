@@ -45,3 +45,8 @@ if __name__ == "__main__":
     result = fetch_hot_stocks()
     save_to_json(result)
     print("已更新 stocks.json（熱門前 30 檔）")
+[
+  {"symbol": "2603", "name": "長榮"},
+  {"symbol": "2615", "name": "萬海"},
+  ...
+]
