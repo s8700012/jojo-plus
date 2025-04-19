@@ -1,31 +1,39 @@
 import requests
-from bs4 import BeautifulSoup
+import pandas as pd
 import json
+from datetime import datetime
 
-exclude_list = {"2330", "2317", "2454", "2303", "2881", "2882"}
+def fetch_preopen_data():
+    url = "https://www.twse.com.tw/rwd/zh/preop/preopQ?date={date}&response=json"
+    date_str = datetime.now().strftime("%Y%m%d")
+    full_url = url.format(date=date_str)
+    
+    try:
+        response = requests.get(full_url)
+        response.encoding = 'utf-8'
+        data = response.json()
+        df = pd.DataFrame(data['data'], columns=data['fields'])
 
-def fetch_preopen_stocks():
-    url = "https://www.twse.com.tw/zh/page/trading/pretrading/stock.html"
-    response = requests.get(url)
-    soup = BeautifulSoup(response.text, 'html.parser')
+        # 計算週轉率（此處僅以成交股數排序模擬）
+        df['成交股數'] = df['成交股數'].astype(str).str.replace(',', '').astype(float)
+        df = df.sort_values('成交股數', ascending=False)
 
-    simulated_data = [
-        {"symbol": "2603", "name": "長榮", "volume": 5000},
-        {"symbol": "2609", "name": "陽明", "volume": 4500},
-        {"symbol": "2615", "name": "萬海", "volume": 4300},
-        {"symbol": "2301", "name": "光寶科", "volume": 4200},
-        {"symbol": "2324", "name": "仁寶", "volume": 4100},
-    ]
+        selected = df.head(30)
 
-    top_stocks = [
-        stock for stock in simulated_data if stock["symbol"] not in exclude_list
-    ]
-    top_stocks = sorted(top_stocks, key=lambda x: x["volume"], reverse=True)[:30]
+        result = []
+        for _, row in selected.iterrows():
+            result.append({
+                "symbol": row['證券代號'],
+                "name": row['證券名稱']
+            })
 
-    with open("stocks.json", "w", encoding="utf-8") as f:
-        json.dump([{"symbol": s["symbol"], "name": s["name"]} for s in top_stocks], f, ensure_ascii=False, indent=2)
+        with open('stocks.json', 'w', encoding='utf-8') as f:
+            json.dump(result, f, ensure_ascii=False, indent=2)
+        
+        print("已產生 stocks.json（高週轉率前30檔）")
 
-    print("已更新 stocks.json，範例第一檔：", top_stocks[0])
+    except Exception as e:
+        print(f"[錯誤] 無法擷取盤前資料: {e}")
 
 if __name__ == "__main__":
-    fetch_preopen_stocks()
+    fetch_preopen_data()
