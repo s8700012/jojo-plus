@@ -1,4 +1,1 @@
 
-with open("stocks.json", "w", encoding="utf-8") as f:
-    json.dump([{"symbol": s["symbol"], "name": s["name"]} for s in top_stocks], f, ensure_ascii=False, indent=2)
-print("範例第一檔：", top_stocks[0])
