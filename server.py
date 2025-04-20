@@ -8,9 +8,11 @@ import os
 
 app = Flask(__name__)
 
+# 載入股票清單
 with open('stocks.json', 'r', encoding='utf-8') as f:
     stock_list = json.load(f)
 
+# 載入 AI 模型
 model = load_model()
 
 @app.route('/')
@@ -24,10 +26,13 @@ def get_stocks():
         try:
             price = get_price(stock['symbol'])
             print(f"[DEBUG] {stock['symbol']} - 抓到價格: {price}")
+
             if price is None or price == 0:
                 continue
+
             features = generate_features(price)
             prediction = predict(model, features)
+
             data.append({
                 "代號": stock["symbol"],
                 "名稱": stock["name"],
@@ -38,7 +43,7 @@ def get_stocks():
                 "AI勝率": f"{50 + int(price) % 50}%"
             })
         except Exception as e:
-            print(f"[錯誤] {stock['symbol']} 處理失敗: {e}")
+            print(f"[錯誤] {stock['symbol']} AI 計算失敗: {e}")
             continue
 
     print(f"[INFO] 最終輸出資料筆數: {len(data)}")
