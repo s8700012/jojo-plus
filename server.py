@@ -8,6 +8,10 @@ import datetime
 import requests
 import os
 
+# 每次啟動時自動執行選股模組
+import stock_selector
+stock_selector.select_top_30()
+
 app = Flask(__name__)
 
 # 載入股票清單
