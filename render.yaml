@@ -3,11 +3,13 @@ services:
   - type: web
     name: jojo-plus
     env: python
-    buildCommand: ""
-    startCommand: "python server.py"
+    plan: free
+    buildCommand: |
+      python stock_selector.py  # <== 每次部署啟動前執行一次
+    startCommand: python server.py
 
-jobs:
-  - name: update-stocks-daily
+  - type: cron
+    name: daily-stock-selector
     env: python
-    schedule: "45 0 * * *"  # 每日台灣時間 08:45 (UTC+8 對應 UTC 00:45)
-    command: "python stock_selector.py"
+    schedule: "45 0 * * *"  # 台灣時間每日 08:45 執行
+    command: python stock_selector.py
