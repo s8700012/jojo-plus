@@ -1,0 +1,8 @@
+services:
+- type: web
+  name: jojo-proxy
+  env: python
+  plan: free
+  buildCommand: ""
+  startCommand: "python server.py"
+  envVars: []
