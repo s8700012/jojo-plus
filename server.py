@@ -6,7 +6,6 @@ import random
 import datetime
 import yfinance as yf
 import os
-import time
 
 app = Flask(__name__)
 
@@ -17,24 +16,31 @@ with open('stocks.json', 'r', encoding='utf-8') as f:
 # 載入 AI 模型
 model = load_model()
 
-# 快取機制（symbol: (price, timestamp)）
+# 每秒快取價格
 price_cache = {}
 
 def fetch_price(symbol):
     now = datetime.datetime.now()
     if symbol in price_cache:
         cached_price, timestamp = price_cache[symbol]
-        if (now - timestamp).total_seconds() < 1:
+        if (now - timestamp).seconds < 1:
             return cached_price
-    try:
-        ticker = yf.Ticker(symbol)
-        history = ticker.history(period='1d')
-        price = round(history['Close'].iloc[-1], 2) if not history.empty else 0
-    except Exception as e:
-        print(f"[Error] 抓取 {symbol} 價格失敗: {e}")
-        price = 0
-    price_cache[symbol] = (price, now)
-    return price
+
+    # 嘗試 .TW（上市）與 .TWO（上櫃）
+    for suffix in ['.TW', '.TWO']:
+        try:
+            ticker = yf.Ticker(symbol + suffix)
+            history = ticker.history(period='1d')
+            if not history.empty:
+                price = round(history['Close'].iloc[-1], 2)
+                price_cache[symbol] = (price, now)
+                return price
+        except Exception as e:
+            print(f"[錯誤] {symbol}{suffix} 查詢失敗: {e}")
+            continue
+
+    print(f"[錯誤] {symbol} 查無報價（.TW/.TWO 都無資料）")
+    return 0
 
 @app.route('/')
 def home():
@@ -44,15 +50,12 @@ def home():
 def get_stocks():
     data = []
     for stock in stock_list:
-        symbol = f"{stock['symbol']}.TW"
-        
+        symbol = stock["symbol"]
         price = fetch_price(symbol)
         if price == 0:
             continue
-        
         features = generate_features(price)
         prediction = predict(model, features)
-        
         data.append({
             "代號": stock["symbol"],
             "名稱": stock["name"],
@@ -62,10 +65,6 @@ def get_stocks():
             "建議出場價": round(price * 1.01, 2),
             "AI勝率": f"{random.randint(60, 90)}%"
         })
-
-        # 加入隨機延遲（避免 Yahoo 被封鎖）
-        time.sleep(random.uniform(0.7, 1.3))
-
     return jsonify(data)
 
 @app.route('/time')
