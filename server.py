@@ -1,9 +1,9 @@
 from flask import Flask, jsonify, send_file
 from feature_generator import generate_features
 from ai_model import load_model, predict
+from tw_stock_scraper import get_price
 import json
 import datetime
-import yfinance as yf
 import os
 
 app = Flask(__name__)
@@ -15,9 +15,6 @@ with open('stocks.json', 'r', encoding='utf-8') as f:
 # 載入 AI 模型
 model = load_model()
 
-# 建立報價快取字典
-price_cache = {}
-
 @app.route('/')
 def home():
     return send_file('index.html')
@@ -25,34 +22,15 @@ def home():
 @app.route('/stocks')
 def get_stocks():
     data = []
-    now = datetime.datetime.now()
-
     for stock in stock_list:
-        symbol = f"{stock['symbol']}.TW"
-        cache_key = symbol
-
-        # 快取：只更新超過1秒的報價
-        if cache_key in price_cache and (now - price_cache[cache_key]['time']).seconds < 1:
-            price = price_cache[cache_key]['price']
-        else:
-            try:
-                ticker = yf.Ticker(symbol)
-                history = ticker.history(period='1d')
-                if history.empty:
-                    raise ValueError("歷史資料為空")
-                price = round(history['Close'].iloc[-1], 2)
-                price_cache[cache_key] = {'price': price, 'time': now}
-            except Exception as e:
-                print(f"[錯誤] 無法抓取 {symbol} 報價：{e}")
-                continue  # 出錯就跳過該標的
-
-        # 跳過價格為 0 的標的（這一行漏冒號，已修正）
-        if price == 0:
-            continue
-
         try:
+            price = get_price(stock['symbol'])
+            if price is None or price == 0:
+                continue
+
             features = generate_features(price)
             prediction = predict(model, features)
+
             data.append({
                 "代號": stock["symbol"],
                 "名稱": stock["name"],
@@ -60,10 +38,10 @@ def get_stocks():
                 "建議方向": prediction,
                 "建議進場價": round(price * 0.99, 2),
                 "建議出場價": round(price * 1.01, 2),
-                "AI勝率": f"{50 + int(price) % 50}%"  # 模擬AI勝率
+                "AI勝率": f"{50 + int(price) % 50}%"
             })
         except Exception as e:
-            print(f"[錯誤] AI 計算失敗 {stock['symbol']}: {e}")
+            print(f"[錯誤] {stock['symbol']} AI 計算失敗: {e}")
             continue
 
     return jsonify(data)
@@ -78,4 +56,4 @@ def ping():
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, threaded=True)
