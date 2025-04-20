@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, send_file
 from feature_generator import generate_features
 from ai_model import load_model, predict
+from concurrent.futures import ThreadPoolExecutor
 import json
 import random
 import datetime
@@ -43,24 +44,27 @@ def home():
 
 @app.route('/stocks')
 def get_stocks():
-    data = []
-    for stock in stock_list:
+    def process(stock):
         symbol = stock["symbol"]
         price = fetch_price(symbol)
         if price == 0:
-            continue
+            return None
         features = generate_features(price)
         prediction = predict(model, features)
-        data.append({
-            "代號": stock["symbol"],
+        return {
+            "代號": symbol,
             "名稱": stock["name"],
             "目前股價": price,
             "建議方向": prediction,
             "建議進場價": round(price * 0.99, 2),
             "建議出場價": round(price * 1.01, 2),
             "AI勝率": f"{random.randint(60, 90)}%"
-        })
-    return jsonify(data)
+        }
+
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        results = list(executor.map(process, stock_list))
+
+    return jsonify([r for r in results if r is not None])
 
 @app.route('/time')
 def time_now():
