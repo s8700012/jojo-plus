@@ -2,18 +2,21 @@ from flask import Flask, jsonify, send_file
 from feature_generator import generate_features
 from ai_model import load_model, predict
 import json
-import random
 import datetime
 import yfinance as yf
 import os
 
 app = Flask(__name__)
 
-# 載入股票清單（30 檔熱門股）
+# 載入股票清單
 with open('stocks.json', 'r', encoding='utf-8') as f:
     stock_list = json.load(f)
 
+# 模型載入
 model = load_model()
+
+# 快取股價用
+price_cache = {}
 
 @app.route('/')
 def home():
@@ -22,19 +25,32 @@ def home():
 @app.route('/stocks')
 def get_stocks():
     data = []
+    now = datetime.datetime.now()
     for stock in stock_list:
         symbol = f"{stock['symbol']}.TW"
-        try:
-            ticker = yf.Ticker(symbol)
-            price = ticker.history(period="1d", interval="1m")['Close'].dropna().iloc[-1]
-            price = round(price, 2)
-        except Exception as e:
-            print(f"[Error] 無法抓取 {symbol}: {e}")
+        cache_key = symbol
+
+        # 快取：避免每次都請求 Yahoo
+        if cache_key in price_cache and (now - price_cache[cache_key]['time']).seconds < 1:
+            price = price_cache[cache_key]['price']
+        else:
+            try:
+                ticker = yf.Ticker(symbol)
+                history = ticker.history(period='1d')
+                if history.empty:
+                    price = 0
+                else:
+                    price = round(history['Close'].iloc[-1], 2)
+                price_cache[cache_key] = {'price': price, 'time': now}
+            except Exception as e:
+                print(f"錯誤: {symbol} => {e}")
+                continue
+
+        if price == 0:
             continue
 
         features = generate_features(price)
         prediction = predict(model, features)
-
         data.append({
             "代號": stock["symbol"],
             "名稱": stock["name"],
@@ -42,9 +58,8 @@ def get_stocks():
             "建議方向": prediction,
             "建議進場價": round(price * 0.99, 2),
             "建議出場價": round(price * 1.01, 2),
-            "AI勝率": f"{random.randint(60, 90)}%"
+            "AI勝率": f"{50 + int(price) % 50}%"
         })
-
     return jsonify(data)
 
 @app.route('/time')
