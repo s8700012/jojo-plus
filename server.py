@@ -19,12 +19,34 @@ model = load_model()
 def home():
     return send_file('index.html')
 
+
+        except Exception as e:
+            print(f"[錯誤] {stock['symbol']} AI 計算失敗: {e}")
+            continue
+
+    return jsonify(data)
+
+@app.route('/time')
+def time_now():
+    return jsonify({"server_time": datetime.datetime.now().strftime("%H:%M:%S")})
+
+@app.route('/ping')
+def ping():
+    return "pong"
+
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port, threaded=True)
 @app.route('/stocks')
 def get_stocks():
     data = []
     for stock in stock_list:
         try:
             price = get_price(stock['symbol'])
+
+            # <<< 新增：印出每一筆股票與價格
+            print(f"[DEBUG] {stock['symbol']} - 抓到價格: {price}")
+
             if price is None or price == 0:
                 continue
 
@@ -44,16 +66,5 @@ def get_stocks():
             print(f"[錯誤] {stock['symbol']} AI 計算失敗: {e}")
             continue
 
+    print(f"[INFO] 最終輸出資料筆數: {len(data)}")
     return jsonify(data)
-
-@app.route('/time')
-def time_now():
-    return jsonify({"server_time": datetime.datetime.now().strftime("%H:%M:%S")})
-
-@app.route('/ping')
-def ping():
-    return "pong"
-
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port, threaded=True)
