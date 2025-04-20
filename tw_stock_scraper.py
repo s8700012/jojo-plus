@@ -10,6 +10,7 @@ def get_price(symbol):
     url = f"https://tw.stock.yahoo.com/quote/{symbol}.TW"
     now = time.time()
 
+    # 快取機制（2秒內不重抓）
     if full_symbol in price_cache and now - price_cache[full_symbol]["timestamp"] < 2:
         return price_cache[full_symbol]["price"]
 
@@ -18,7 +19,7 @@ def get_price(symbol):
         res = requests.get(url, headers=headers, timeout=5)
         res.raise_for_status()
 
-        # 從 Yahoo 的 <script> 中擷取嵌入 JSON 的報價
+        # 從 <script> 中找出 JSON 資料
         match = re.search(r'root.App.main\s*=\s*({.*?});\n', res.text)
         if match:
             data = json.loads(match.group(1))
