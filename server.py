@@ -25,8 +25,6 @@ def get_stocks():
     for stock in stock_list:
         try:
             price = get_price(stock['symbol'])
-
-            # <<< DEBUG：印出目前價格
             print(f"[DEBUG] {stock['symbol']} - 抓到價格: {price}")
 
             if price is None or price == 0:
