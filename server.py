@@ -46,5 +46,36 @@ def get_stocks():
                 print(f"[錯誤] 無法抓取 {symbol} 報價：{e}")
                 continue  # 出錯就跳過該標的
 
-        # 跳過價格為 0 的標的
-        if price == 0
+        # 跳過價格為 0 的標的（這一行漏冒號，已修正）
+        if price == 0:
+            continue
+
+        try:
+            features = generate_features(price)
+            prediction = predict(model, features)
+            data.append({
+                "代號": stock["symbol"],
+                "名稱": stock["name"],
+                "目前股價": price,
+                "建議方向": prediction,
+                "建議進場價": round(price * 0.99, 2),
+                "建議出場價": round(price * 1.01, 2),
+                "AI勝率": f"{50 + int(price) % 50}%"  # 模擬AI勝率
+            })
+        except Exception as e:
+            print(f"[錯誤] AI 計算失敗 {stock['symbol']}: {e}")
+            continue
+
+    return jsonify(data)
+
+@app.route('/time')
+def time_now():
+    return jsonify({"server_time": datetime.datetime.now().strftime("%H:%M:%S")})
+
+@app.route('/ping')
+def ping():
+    return "pong"
+
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
