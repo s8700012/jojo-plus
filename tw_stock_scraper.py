@@ -1,22 +1,18 @@
-
 import requests
 from bs4 import BeautifulSoup
 import time
 
-# 快取機制（避免每次都重抓）
+# 快取報價
 price_cache = {}
 
 def get_price(symbol):
-    """
-    從 Yahoo Finance 擷取即時價格，symbol 為 '2330'（會轉成 2330.TW）
-    """
     full_symbol = f"{symbol}.TW"
     url = f"https://tw.stock.yahoo.com/quote/{symbol}.TW"
-
     now = time.time()
-    # 如果快取在 2 秒內，直接返回
-    if full_symbol in price_cache and now - price_cache[full_symbol]["timestamp"] < 2:
-        return price_cache[full_symbol]["price"]
+
+    # 2 秒內使用快取
+    if full_symbol in price_cache and now - price_cache[full_symbol]['timestamp'] < 2:
+        return price_cache[full_symbol]['price']
 
     try:
         headers = {
@@ -24,14 +20,24 @@ def get_price(symbol):
         }
         res = requests.get(url, headers=headers, timeout=5)
         res.raise_for_status()
-
         soup = BeautifulSoup(res.text, "html.parser")
+
+        # 嘗試從 <fin-streamer> 擷取
         tag = soup.find("fin-streamer", {"data-field": "regularMarketPrice"})
-        if tag:
+        if not tag:
+            # 備援：找有 aria-label 的價格文字
+            alt_tag = soup.find("span", attrs={"class": "D(f) Ai(c) Mend(8px)"})
+            if alt_tag:
+                tag = alt_tag.find("span")
+        
+        if tag and tag.text:
             price = float(tag.text.replace(",", ""))
-            # 更新快取
             price_cache[full_symbol] = {"price": price, "timestamp": now}
             return price
+
+        print(f"[警告] 無法擷取 {symbol} 即時價格")
+        return None
+
     except Exception as e:
         print(f"[爬蟲錯誤] {symbol}: {e}")
         return None
