@@ -1,18 +1,17 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
-  <title>Jojo Plus 即時股價系統</title>
+  <meta charset="UTF-8">
+  <title>Jojo Plus · 盤中即時分析</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    table { border-collapse: collapse; width: 100%; }
+    table { width: 100%; border-collapse: collapse; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
     th { background-color: #f0f0f0; }
   </style>
 </head>
 <body>
-  <h2>Jojo Plus - 盤中即時分析</h2>
-  <table id="stockTable">
+  <h2>Jojo Plus · 盤中即時分析</h2>
+  <table id="stock-table">
     <thead>
       <tr>
         <th>代號</th>
@@ -28,27 +27,36 @@
   </table>
 
   <script>
-    async function fetchData() {
-      const res = await fetch('/stocks');
-      const stocks = await res.json();
-      const tbody = document.querySelector('tbody');
-      tbody.innerHTML = '';
-      stocks.forEach(stock => {
-        const row = `<tr>
-          <td>${stock.代號}</td>
-          <td>${stock.名稱}</td>
-          <td>${stock.目前股價}</td>
-          <td>${stock.建議方向}</td>
-          <td>${stock.建議進場價}</td>
-          <td>${stock.建議出場價}</td>
-          <td>${stock.AI勝率}</td>
-        </tr>`;
-        tbody.innerHTML += row;
-      });
+    async function fetchStocks() {
+      try {
+        const res = await fetch('/stocks');
+        const data = await res.json();
+
+        const tbody = document.querySelector('#stock-table tbody');
+        tbody.innerHTML = ''; // 清空原本的表格內容
+
+        data.forEach(stock => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${stock['代號']}</td>
+            <td>${stock['名稱']}</td>
+            <td>${stock['目前股價']}</td>
+            <td>${stock['建議方向']}</td>
+            <td>${stock['建議進場價']}</td>
+            <td>${stock['建議出場價']}</td>
+            <td>${stock['AI勝率']}</td>
+          `;
+          tbody.appendChild(row);
+        });
+
+      } catch (err) {
+        console.error('[錯誤] 讀取資料失敗', err);
+      }
     }
 
-    setInterval(fetchData, 1000);
-    fetchData();
+    // 每 3 秒更新一次資料
+    fetchStocks();
+    setInterval(fetchStocks, 3000);
   </script>
 </body>
 </html>
