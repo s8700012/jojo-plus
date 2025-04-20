@@ -4,7 +4,7 @@ from ai_model import load_model, predict
 import json
 import random
 import datetime
-import yfinance as yf
+import requests
 import os
 
 app = Flask(__name__)
@@ -19,28 +19,23 @@ model = load_model()
 # 每秒快取價格
 price_cache = {}
 
+# 改為使用 Proxy API 擷取股價
 def fetch_price(symbol):
     now = datetime.datetime.now()
     if symbol in price_cache:
         cached_price, timestamp = price_cache[symbol]
         if (now - timestamp).seconds < 1:
             return cached_price
-
-    # 嘗試 .TW（上市）與 .TWO（上櫃）
-    for suffix in ['.TW', '.TWO']:
-        try:
-            ticker = yf.Ticker(symbol + suffix)
-            history = ticker.history(period='1d')
-            if not history.empty:
-                price = round(history['Close'].iloc[-1], 2)
-                price_cache[symbol] = (price, now)
-                return price
-        except Exception as e:
-            print(f"[錯誤] {symbol}{suffix} 查詢失敗: {e}")
-            continue
-
-    print(f"[錯誤] {symbol} 查無報價（.TW/.TWO 都無資料）")
-    return 0
+    try:
+        url = f"https://yahoo-proxy-server.onrender.com/quote?symbol={symbol}"
+        response = requests.get(url, timeout=5)
+        result = response.json()
+        price = round(float(result['price']), 2)
+    except Exception as e:
+        print(f"[錯誤] {symbol}: {e}")
+        price = 0
+    price_cache[symbol] = (price, now)
+    return price
 
 @app.route('/')
 def home():
