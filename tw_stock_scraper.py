@@ -10,24 +10,23 @@ def get_price(symbol):
     url = f"https://tw.stock.yahoo.com/quote/{symbol}.TW"
     now = time.time()
 
-    if full_symbol in price_cache and now - price_cache[full_symbol]['timestamp'] < 2:
-        return price_cache[full_symbol]['price']
+    if full_symbol in price_cache and now - price_cache[full_symbol]["timestamp"] < 2:
+        return price_cache[full_symbol]["price"]
 
     try:
         headers = {"User-Agent": "Mozilla/5.0"}
         res = requests.get(url, headers=headers, timeout=5)
         res.raise_for_status()
 
-        # 從 JavaScript <script> 中找出 JSON 嵌入價格
-        match = re.search(r'root.App.main\s*=\s*({.*});', res.text)
+        # 從 Yahoo 的 <script> 中擷取嵌入 JSON 的報價
+        match = re.search(r'root.App.main\s*=\s*({.*?});\n', res.text)
         if match:
             data = json.loads(match.group(1))
             price = data['context']['dispatcher']['stores']['QuoteSummaryStore']['price']['regularMarketPrice']['raw']
-            if price:
-                price_cache[full_symbol] = {"price": price, "timestamp": now}
-                return float(price)
+            price_cache[full_symbol] = {"price": price, "timestamp": now}
+            return float(price)
 
-        print(f"[警告] {symbol} 無法從 script 中擷取報價")
+        print(f"[警告] {symbol} 擷取價格失敗")
         return None
 
     except Exception as e:
