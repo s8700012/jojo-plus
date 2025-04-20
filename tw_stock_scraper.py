@@ -1,34 +1,31 @@
-# 檔名：tw_stock_scraper.py
 import requests
-from bs4 import BeautifulSoup
 import time
 
 price_cache = {}
+PROXY_URL = "https://yahoo-proxy-server.s8700012.repl.co"
 
 def get_price(symbol):
-    full_symbol = f"{symbol}.TW"
-    url = f"https://tw.stock.yahoo.com/quote/{symbol}.TW"
     now = time.time()
 
-    # 快取機制（兩秒內不重抓）
-    if full_symbol in price_cache and now - price_cache[full_symbol]["timestamp"] < 2:
-        return price_cache[full_symbol]["price"]
+    # 快取：兩秒內不重抓
+    if symbol in price_cache and now - price_cache[symbol]["timestamp"] < 2:
+        return price_cache[symbol]["price"]
 
     try:
-        headers = {"User-Agent": "Mozilla/5.0"}
-        res = requests.get(url, headers=headers, timeout=5)
+        url = f"{PROXY_URL}/quote?symbol={symbol}"
+        res = requests.get(url, timeout=5)
         res.raise_for_status()
+        data = res.json()
 
-        soup = BeautifulSoup(res.text, "html.parser")
-        tag = soup.find("fin-streamer", {"data-symbol": full_symbol, "data-field": "regularMarketPrice"})
-        if tag and tag.text:
-            price = float(tag.text.replace(",", ""))
-            price_cache[full_symbol] = {"price": price, "timestamp": now}
+        price = data.get("price")
+        if price is not None:
+            price_cache[symbol] = {"price": price, "timestamp": now}
+            print(f"[DEBUG] {symbol} - 從 Proxy 抓到價格: {price}")
             return price
         else:
-            print(f"[警告] {symbol} - 找不到價格")
+            print(f"[警告] {symbol} - Proxy 未回傳價格")
             return None
 
     except Exception as e:
-        print(f"[爬蟲錯誤] {symbol}: {e}")
+        print(f"[錯誤] {symbol} Proxy 擷取失敗: {e}")
         return None
