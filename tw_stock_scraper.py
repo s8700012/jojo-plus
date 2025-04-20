@@ -1,8 +1,8 @@
 import requests
-from bs4 import BeautifulSoup
 import time
+import re
+import json
 
-# 快取報價
 price_cache = {}
 
 def get_price(symbol):
@@ -10,32 +10,24 @@ def get_price(symbol):
     url = f"https://tw.stock.yahoo.com/quote/{symbol}.TW"
     now = time.time()
 
-    # 2 秒內使用快取
     if full_symbol in price_cache and now - price_cache[full_symbol]['timestamp'] < 2:
         return price_cache[full_symbol]['price']
 
     try:
-        headers = {
-            "User-Agent": "Mozilla/5.0"
-        }
+        headers = {"User-Agent": "Mozilla/5.0"}
         res = requests.get(url, headers=headers, timeout=5)
         res.raise_for_status()
-        soup = BeautifulSoup(res.text, "html.parser")
 
-        # 嘗試從 <fin-streamer> 擷取
-        tag = soup.find("fin-streamer", {"data-field": "regularMarketPrice"})
-        if not tag:
-            # 備援：找有 aria-label 的價格文字
-            alt_tag = soup.find("span", attrs={"class": "D(f) Ai(c) Mend(8px)"})
-            if alt_tag:
-                tag = alt_tag.find("span")
-        
-        if tag and tag.text:
-            price = float(tag.text.replace(",", ""))
-            price_cache[full_symbol] = {"price": price, "timestamp": now}
-            return price
+        # 從 JavaScript <script> 中找出 JSON 嵌入價格
+        match = re.search(r'root.App.main\s*=\s*({.*});', res.text)
+        if match:
+            data = json.loads(match.group(1))
+            price = data['context']['dispatcher']['stores']['QuoteSummaryStore']['price']['regularMarketPrice']['raw']
+            if price:
+                price_cache[full_symbol] = {"price": price, "timestamp": now}
+                return float(price)
 
-        print(f"[警告] 無法擷取 {symbol} 即時價格")
+        print(f"[警告] {symbol} 無法從 script 中擷取報價")
         return None
 
     except Exception as e:
