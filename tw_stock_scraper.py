@@ -7,7 +7,6 @@ PROXY_URL = "https://yahoo-proxy-server.s8700012.repl.co"
 def get_price(symbol):
     now = time.time()
 
-    # 快取：兩秒內不重抓
     if symbol in price_cache and now - price_cache[symbol]["timestamp"] < 2:
         return price_cache[symbol]["price"]
 
