@@ -1,0 +1,13 @@
+
+services:
+  - type: web
+    name: jojo-plus
+    env: python
+    buildCommand: ""
+    startCommand: "python server.py"
+
+jobs:
+  - name: update-stocks-daily
+    env: python
+    schedule: "45 0 * * *"  # 每日台灣時間 08:45 (UTC+8 對應 UTC 00:45)
+    command: "python stock_selector.py"
