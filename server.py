@@ -1,3 +1,5 @@
+# server.py
+
 from flask import Flask, jsonify, send_file
 from feature_generator import generate_features
 from ai_model import load_model, predict
@@ -14,9 +16,13 @@ stock_selector.select_top_30()
 
 app = Flask(__name__)
 
-# 載入股票清單
-with open('stocks.json', 'r', encoding='utf-8') as f:
-    stock_list = json.load(f)
+# 載入股票清單（加上容錯）
+try:
+    with open('stocks.json', 'r', encoding='utf-8') as f:
+        stock_list = json.load(f)
+except Exception as e:
+    print(f"[錯誤] 無法載入 stocks.json：{e}")
+    stock_list = []
 
 # 載入 AI 模型
 model = load_model()
