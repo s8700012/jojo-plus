@@ -10,13 +10,13 @@ import datetime
 import requests
 import os
 
-# 每次啟動時自動執行選股模組
+# 啟動時自動執行選股模組
 import stock_selector
 stock_selector.select_top_30()
 
 app = Flask(__name__)
 
-# 載入股票清單（加上容錯）
+# 載入股票清單
 try:
     with open('stocks.json', 'r', encoding='utf-8') as f:
         stock_list = json.load(f)
@@ -27,10 +27,10 @@ except Exception as e:
 # 載入 AI 模型
 model = load_model()
 
-# 每秒快取價格
+# 快取價格，每秒更新
 price_cache = {}
 
-# 改為使用 Proxy API 擷取股價
+# 使用 TWSE Proxy 伺服器
 def fetch_price(symbol):
     now = datetime.datetime.now()
     if symbol in price_cache:
@@ -38,15 +38,15 @@ def fetch_price(symbol):
         if (now - timestamp).seconds < 1:
             return cached_price
     try:
-        url = f"https://yahoo-proxy-server.onrender.com/quote?symbol={symbol}"
-        response = requests.get(url, timeout=5)
-        result = response.json()
-        price = round(float(result['price']), 2)
+        url = f"https://proxy-server.onrender.com/quote?symbol={symbol}"
+        res = requests.get(url, timeout=5)
+        result = res.json()
+        price = round(float(result["price"]), 2)
+        price_cache[symbol] = (price, now)
+        return price
     except Exception as e:
-        print(f"[錯誤] {symbol}: {e}")
-        price = 0
-    price_cache[symbol] = (price, now)
-    return price
+        print(f"[錯誤] 擷取 {symbol} 報價失敗：{e}")
+        return 0
 
 @app.route('/')
 def home():
@@ -74,7 +74,7 @@ def get_stocks():
     with ThreadPoolExecutor(max_workers=10) as executor:
         results = list(executor.map(process, stock_list))
 
-    return jsonify([r for r in results if r is not None])
+    return jsonify([r for r in results if r])
 
 @app.route('/time')
 def time_now():
