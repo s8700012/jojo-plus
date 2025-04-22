@@ -1,58 +1,58 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Jojo Plus 熱門股即時監控</title>
-  <style>
-    body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: #f9f9f9; }
-    h2 { text-align: center; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-    th { background-color: #333; color: white; }
-    tr:nth-child(even) { background-color: #f2f2f2; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Jojo Plus - 盤中即時分析</title>
 </head>
 <body>
-  <h2>Jojo Plus 熱門股票即時監控</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>股票代號</th>
-        <th>股票名稱</th>
-        <th>即時價格</th>
-        <th>建議方向</th>
-        <th>建議進場價</th>
-        <th>建議出場價</th>
-        <th>勝率預測</th>
-      </tr>
-    </thead>
-    <tbody id="stock-table"></tbody>
-  </table>
-
-  <script>
-    async function fetchData() {
-      const res = await fetch('/stocks');
-      const data = await res.json();
-      const table = document.getElementById('stock-table');
-      table.innerHTML = '';
-      data.forEach(stock => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${stock.代號}</td>
-          <td>${stock.名稱}</td>
-          <td>${stock.目前股價}</td>
-          <td>${stock.建議方向}</td>
-          <td>${stock.建議進場價}</td>
-          <td>${stock.建議出場價}</td>
-          <td>${stock.AI勝率}</td>
-        `;
-        table.appendChild(row);
-      });
-    }
-
-    fetchData();
-    setInterval(fetchData, 10000); // 每 10 秒更新
-  </script>
+    <h2>Jojo Plus - 盤中即時分析</h2>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>代號</th>
+                <th>名稱</th>
+                <th>目前股價</th>
+                <th>建議方向</th>
+                <th>建議進場價</th>
+                <th>建議出場價</th>
+                <th>AI勝率</th>
+            </tr>
+        </thead>
+        <tbody id="data-body">
+            <tr><td colspan="7">資料載入中...</td></tr>
+        </tbody>
+    </table>
+    <script>
+        async function fetchData() {
+            try {
+                const res = await fetch('/stocks');
+                const data = await res.json();
+                const tbody = document.getElementById('data-body');
+                tbody.innerHTML = '';
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7">目前無資料</td></tr>';
+                }
+                data.forEach(stock => {
+                    const row = `
+                        <tr>
+                            <td>${stock["代號"]}</td>
+                            <td>${stock["名稱"]}</td>
+                            <td>${stock["目前股價"]}</td>
+                            <td>${stock["建議方向"]}</td>
+                            <td>${stock["建議進場價"]}</td>
+                            <td>${stock["建議出場價"]}</td>
+                            <td>${stock["AI勝率"]}</td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            } catch (err) {
+                document.getElementById('data-body').innerHTML = '<tr><td colspan="7">錯誤：無法載入資料</td></tr>';
+                console.error(err);
+            }
+        }
+        fetchData();
+        setInterval(fetchData, 5000);
+    </script>
 </body>
 </html>
